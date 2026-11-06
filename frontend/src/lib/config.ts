@@ -1,6 +1,7 @@
 // Build-time configuration. NEXT_PUBLIC_* values are inlined into the static bundle.
 
-export const API_URL = (process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000").replace(
+// `||`, not `??`: an unset CI variable arrives as "" and must fall back too.
+export const API_URL = (process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000").replace(
   /\/+$/,
   "",
 );

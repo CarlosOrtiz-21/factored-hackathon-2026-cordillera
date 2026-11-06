@@ -5,6 +5,8 @@ import type { NextConfig } from "next";
 // Everything talks to the FastAPI backend from the browser (NEXT_PUBLIC_API_URL).
 const config: NextConfig = {
   output: "export",
+  // GitHub Pages serves the site under /<repo>/; the workflow sets this. Empty locally.
+  basePath: process.env.NEXT_PUBLIC_BASE_PATH || "",
   trailingSlash: true, // /auditor -> /auditor/index.html, works on any static host
   images: { unoptimized: true },
   reactStrictMode: true,

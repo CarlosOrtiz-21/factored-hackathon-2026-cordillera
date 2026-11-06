@@ -19,10 +19,12 @@ Test the image locally before uploading (Docker Desktop running; data from `data
 import argparse
 import shutil
 import subprocess
+import sys
 import tempfile
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(ROOT))  # `pipelines/` is not packaged; run from anywhere
 STAGE = ROOT / "dist" / "hf-space"
 DATA = ROOT / "dist" / "data"
 SPACE_FILES = ["pyproject.toml", "src", "corpus"]
