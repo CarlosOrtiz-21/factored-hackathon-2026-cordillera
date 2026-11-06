@@ -44,3 +44,4 @@ docs/LATAM_Bank_Dataset_Summary*.pdf
 .claude/
 *.tsbuildinfo
 /dist/
+/.frontend-slides/

@@ -1,0 +1,557 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Lía · Banco Cordillera — Factored AI &amp; Data Hackathon 2026</title>
+<!-- Fonts: Source Serif 4 (voice), DM Sans (substance), IBM Plex Mono (chrome & data labels) -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;0,8..60,700;1,8..60,400;1,8..60,600&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+/* ===========================================
+   THEME: "Andean night" — topographic contours (world)
+   + editorial briefing typography (voice).
+   Change these variables to restyle the whole deck.
+   =========================================== */
+:root {
+  --stage-bg: #04090d;
+  --slide-bg: #0a141c;
+  --snow: #eef3f1;          /* primary text */
+  --mist: #b9c8c8;          /* secondary text */
+  --dim: #6f8a94;           /* labels, chrome */
+  --glacier: #7fd3d0;       /* data labels, contour lines */
+  --sun: #f2a93b;           /* the single hot accent: emphasis, peaks, figures */
+  --danger: #e8735a;        /* only for "unsafe" figures */
+  --rule: rgba(238, 243, 241, 0.14);
+  --panel: rgba(238, 243, 241, 0.025);
+  --contour: rgba(127, 211, 208, 0.20);
+  --font-serif: 'Source Serif 4', Georgia, serif;
+  --font-sans: 'DM Sans', sans-serif;
+  --font-mono: 'IBM Plex Mono', monospace;
+  --ease: cubic-bezier(0.16, 1, 0.3, 1);
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+/* ===========================================
+   FIXED 16:9 STAGE (viewport-base.css, full contents)
+   =========================================== */
+html, body { width: 100%; height: 100%; margin: 0; overflow: hidden; background: var(--stage-bg, #000); }
+.deck-viewport { position: fixed; inset: 0; overflow: hidden; background: var(--stage-bg, #000); }
+.deck-stage { position: absolute; left: 0; top: 0; width: 1920px; height: 1080px; overflow: hidden; transform-origin: 0 0; background: var(--slide-bg, #fff); }
+.slide { position: absolute; inset: 0; width: 1920px; height: 1080px; overflow: hidden; display: block; visibility: hidden; opacity: 0; pointer-events: none; background: var(--slide-bg, #fff); }
+.slide.active, .slide.visible { visibility: visible; opacity: 1; pointer-events: auto; z-index: 1; }
+img, video, canvas, svg { max-width: 100%; max-height: 100%; }
+.deck-controls { position: fixed; left: 50%; bottom: 22px; transform: translateX(-50%); z-index: 1000; }
+@media print {
+  html, body { width: 1920px; height: auto; overflow: visible; background: #fff; }
+  .deck-viewport { position: static; overflow: visible; background: #fff; }
+  .deck-stage { position: static; width: auto; height: auto; transform: none !important; background: none; }
+  .slide { position: relative; display: block !important; visibility: visible !important; opacity: 1 !important; pointer-events: auto !important; width: 1920px; height: 1080px; break-after: page; page-break-after: always; }
+  .slide:last-child { break-after: auto; page-break-after: auto; }
+  .deck-controls { display: none !important; }
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.2s !important; }
+}
+
+/* ===========================================
+   SLIDE ATMOSPHERE: sunrise glow + generated contours
+   =========================================== */
+.slide {
+  background:
+    radial-gradient(ellipse 1000px 560px at var(--gx, 74%) 112%, rgba(242, 169, 59, 0.22), transparent 70%),
+    radial-gradient(ellipse at 15% -10%, #12263300, #10222e 0%, transparent 60%),
+    var(--slide-bg);
+  color: var(--snow);
+  font-family: var(--font-sans);
+}
+svg.topo { position: absolute; inset: 0; width: 1920px; height: 1080px; max-width: none; max-height: none; pointer-events: none; }
+.topo path { fill: none; stroke: var(--contour); stroke-width: 1.3; stroke-dasharray: var(--len); stroke-dashoffset: var(--len); }
+.topo path.major { stroke: rgba(127, 211, 208, 0.36); stroke-width: 1.8; }
+.visible .topo path { animation: draw 2.8s var(--ease) forwards; animation-delay: var(--d); }
+@keyframes draw { to { stroke-dashoffset: 0; } }
+
+/* ===========================================
+   CHROME: kicker, rules, footer (same on every slide)
+   =========================================== */
+.chrome { position: absolute; left: 112px; right: 112px; top: 76px; display: flex; justify-content: space-between; font: 500 17px/1 var(--font-mono); letter-spacing: 0.16em; text-transform: uppercase; color: var(--dim); }
+.chrome b { color: var(--sun); font-weight: 500; }
+.hair { position: absolute; left: 112px; right: 112px; top: 114px; height: 1px; background: var(--rule); transform: scaleX(0); transform-origin: left; transition: transform 1.3s var(--ease); }
+.visible .hair { transform: scaleX(1); }
+.foot { position: absolute; left: 112px; right: 112px; bottom: 54px; display: flex; justify-content: space-between; font: 400 15px/1 var(--font-mono); letter-spacing: 0.12em; text-transform: uppercase; color: #4f6670; }
+
+/* ===========================================
+   TYPOGRAPHY
+   =========================================== */
+.h2 { position: absolute; left: 112px; top: 150px; width: 1500px; font: 400 66px/1.08 var(--font-serif); letter-spacing: -0.012em; color: var(--snow); }
+.h2 em, .lede em { font-style: italic; color: var(--sun); }
+.label { font: 500 16px/1.2 var(--font-mono); letter-spacing: 0.14em; text-transform: uppercase; color: var(--glacier); }
+.body { font: 400 24px/1.42 var(--font-sans); color: var(--mist); }
+.body strong { color: var(--snow); font-weight: 500; }
+
+/* ===========================================
+   ENTRANCE ANIMATIONS (triggered by .visible on the slide)
+   .rv = fade up · .rb = blur in · --i = stagger index
+   =========================================== */
+.rv { opacity: 0; transform: translateY(22px); transition: opacity 0.8s var(--ease), transform 0.8s var(--ease); transition-delay: calc(0.25s + var(--i, 0) * 0.09s); }
+.rb { opacity: 0; filter: blur(8px); transition: opacity 1s var(--ease), filter 1s var(--ease); transition-delay: calc(0.2s + var(--i, 0) * 0.09s); }
+.visible .rv { opacity: 1; transform: none; }
+.visible .rb { opacity: 1; filter: none; }
+.h2 .w { display: inline-block; opacity: 0; transform: translateY(14px); filter: blur(5px); transition: opacity 0.8s var(--ease), transform 0.8s var(--ease), filter 0.8s var(--ease); }
+.visible .h2 .w { opacity: 1; transform: none; filter: none; }
+
+/* ===========================================
+   SLIDE 1 — TITLE
+   =========================================== */
+.s1 .coord { position: absolute; left: 112px; top: 76px; font: 500 17px/1 var(--font-mono); letter-spacing: 0.14em; color: var(--dim); }
+.s1 .coord b { color: var(--sun); font-weight: 500; }
+.s1 .title { position: absolute; left: 96px; top: 170px; font: 600 340px/0.9 var(--font-serif); letter-spacing: -0.045em; color: var(--snow); clip-path: inset(100% 0 0 0); transition: clip-path 1.4s var(--ease) 0.45s; }
+.s1 .title i { font-style: normal; color: var(--sun); }
+.visible.s1 .title { clip-path: inset(-10% 0 0 0); }
+.s1 .lede { position: absolute; left: 112px; top: 560px; width: 860px; font: 400 44px/1.2 var(--font-serif); color: var(--mist); }
+.s1 .sub { position: absolute; left: 112px; top: 760px; width: 820px; }
+.peak { position: absolute; display: flex; align-items: flex-start; gap: 18px; }
+.peak .tri { margin-top: 18px; width: 0; height: 0; border-left: 13px solid transparent; border-right: 13px solid transparent; border-bottom: 22px solid var(--sun); filter: drop-shadow(0 0 12px rgba(242, 169, 59, 0.75)); }
+.peak .v { font: 600 78px/1 var(--font-serif); color: var(--snow); letter-spacing: -0.02em; font-variant-numeric: lining-nums tabular-nums; }
+.peak .k { margin-top: 10px; font: 400 17px/1.4 var(--font-mono); color: var(--glacier); letter-spacing: 0.03em; max-width: 300px; }
+.s1 .p1 { left: 1190px; top: 250px; } .s1 .p2 { left: 1430px; top: 480px; } .s1 .p3 { left: 1100px; top: 700px; }
+
+/* ===========================================
+   SLIDE 2 — WHY CARDS
+   =========================================== */
+.s2 .evidence { position: absolute; left: 112px; top: 340px; width: 700px; }
+.metric { display: grid; grid-template-columns: 210px 1fr; align-items: baseline; gap: 26px; padding: 22px 0; border-top: 1px solid var(--rule); }
+.metric .big { font: 600 76px/1 var(--font-serif); color: var(--sun); font-variant-numeric: lining-nums tabular-nums; }
+.metric .txt { font: 400 22px/1.38 var(--font-sans); color: var(--mist); }
+.metric .txt strong { color: var(--snow); font-weight: 500; }
+.s2 .scope { position: absolute; left: 920px; top: 340px; width: 888px; display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.intent { padding: 18px 24px; border: 1px solid var(--rule); background: var(--panel); }
+.intent .name { margin-top: 10px; font: 600 30px/1.1 var(--font-serif); color: var(--snow); }
+.intent .d { margin-top: 8px; font: 400 19px/1.35 var(--font-sans); color: var(--mist); }
+.intent.write { border-color: rgba(242, 169, 59, 0.55); box-shadow: inset 3px 0 0 var(--sun); }
+.intent.write .label { color: var(--sun); }
+.s2 .paths { position: absolute; left: 920px; top: 856px; width: 888px; display: flex; gap: 14px; align-items: center; font: 500 18px/1 var(--font-mono); letter-spacing: 0.06em; color: var(--mist); }
+.s2 .paths span { padding: 12px 16px; border: 1px solid var(--rule); }
+.s2 .paths i { color: var(--dim); font-style: normal; }
+
+/* ===========================================
+   SLIDE 3 — HOW IT WORKS (graph)
+   =========================================== */
+.s3 svg.wires { position: absolute; inset: 0; width: 1920px; height: 1080px; max-width: none; max-height: none; pointer-events: none; }
+.wires path { fill: none; stroke: rgba(238, 243, 241, 0.35); stroke-width: 2; stroke-dasharray: var(--len); stroke-dashoffset: var(--len); }
+.wires path.dash { stroke-dasharray: 6 8; stroke-dashoffset: 0; opacity: 0; transition: opacity 0.8s 1.6s; }
+.wires path.hot { stroke: rgba(242, 169, 59, 0.7); }
+.visible .wires path { animation: draw 0.9s var(--ease) forwards; animation-delay: var(--d); }
+.visible .wires path.dash { animation: none; opacity: 1; }
+.node { position: absolute; padding: 16px 20px; border: 1px solid var(--rule); background: rgba(10, 20, 28, 0.88); }
+.node .label { font-size: 13px; letter-spacing: 0.06em; white-space: nowrap; }
+.node .nm { margin-top: 8px; font: 600 28px/1.08 var(--font-serif); color: var(--snow); }
+.node .ds { margin-top: 6px; font: 400 16px/1.3 var(--font-sans); color: var(--mist); }
+.node.human { border-color: var(--sun); box-shadow: 0 0 0 1px rgba(242, 169, 59, 0.25), 0 0 40px rgba(242, 169, 59, 0.18); }
+.node.human .label, .node.code .label { color: var(--sun); }
+.node.code { border-style: dashed; border-color: rgba(242, 169, 59, 0.6); }
+.node.exit { padding: 10px 16px; }
+.node.exit .nm { margin: 0; font-size: 22px; }
+.pulse { position: absolute; left: 0; top: 0; width: 16px; height: 16px; margin: -8px 0 0 -8px; border-radius: 50%; background: var(--sun); box-shadow: 0 0 18px 6px rgba(242, 169, 59, 0.55); offset-path: var(--route); offset-rotate: 0deg; opacity: 0; }
+.visible .pulse { animation: travel 6.5s cubic-bezier(0.45, 0, 0.25, 1) 2.2s infinite; }
+@keyframes travel { 0% { offset-distance: 0%; opacity: 0; } 4% { opacity: 1; } 52% { offset-distance: 58%; } 62% { offset-distance: 58%; } 96% { opacity: 1; } 100% { offset-distance: 100%; opacity: 0; } }
+.s3 .notes { position: absolute; left: 112px; right: 112px; top: 850px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 48px; }
+.s3 .notes .body { font-size: 20px; margin-top: 10px; }
+.gate-tag { position: absolute; font: 500 15px/1.3 var(--font-mono); color: var(--sun); letter-spacing: 0.04em; }
+
+/* ===========================================
+   SLIDE 4 — SAFETY CONTROLS
+   =========================================== */
+.s4 .grid6 { position: absolute; left: 112px; right: 112px; top: 350px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 22px; }
+.ctrl { position: relative; padding: 30px 30px 28px; border: 1px solid var(--rule); background: var(--panel); min-height: 288px; }
+.ctrl .no { position: absolute; right: 26px; top: 22px; font: 600 54px/1 var(--font-serif); color: rgba(242, 169, 59, 0.22); }
+.ctrl .nm { margin-top: 14px; font: 600 33px/1.1 var(--font-serif); color: var(--snow); max-width: 440px; }
+.ctrl .body { margin-top: 14px; font-size: 20px; }
+.ctrl code { font: 500 18px/1.3 var(--font-mono); color: var(--sun); }
+
+/* ===========================================
+   SLIDE 5 — RESULTS
+   =========================================== */
+.s5 .table { position: absolute; left: 112px; top: 345px; width: 1080px; }
+.row { display: grid; grid-template-columns: 1fr 210px 210px; align-items: center; padding: 15px 0; border-top: 1px solid var(--rule); }
+.row.head { border-top: 0; padding-bottom: 10px; }
+.row .m { font: 400 22px/1.3 var(--font-sans); color: var(--mist); }
+.row .m small { display: block; font: 400 15px/1.3 var(--font-mono); color: var(--dim); letter-spacing: 0.03em; }
+.row .a, .row .b { font: 600 38px/1 var(--font-serif); text-align: right; font-variant-numeric: lining-nums tabular-nums; }
+.row .a { color: var(--sun); } .row .b { color: var(--mist); }
+.row .b.bad { color: var(--danger); }
+.row.key { background: linear-gradient(90deg, rgba(242, 169, 59, 0.10), transparent 75%); }
+.s5 .side { position: absolute; left: 1290px; top: 345px; width: 518px; }
+.bars { margin-top: 18px; }
+.bar { margin: 18px 0; }
+.bar .t { display: flex; justify-content: space-between; font: 400 17px/1 var(--font-mono); color: var(--mist); letter-spacing: 0.03em; }
+.bar .track { margin-top: 10px; height: 14px; background: rgba(238, 243, 241, 0.06); }
+.bar .fill { height: 100%; width: 0; background: var(--sun); transition: width 1.4s var(--ease); transition-delay: calc(0.6s + var(--i) * 0.15s); }
+.bar .fill.base { background: rgba(185, 200, 200, 0.45); }
+.bar .fill.bad { background: var(--danger); }
+.visible .bar .fill { width: var(--w); }
+.s5 .golden { margin-top: 34px; padding-top: 22px; border-top: 1px solid var(--rule); }
+.s5 .golden .body { font-size: 19px; margin-top: 10px; }
+.s5 .fine { position: absolute; left: 112px; top: 952px; width: 1700px; font: 400 16px/1.4 var(--font-mono); color: var(--dim); letter-spacing: 0.02em; }
+
+/* ===========================================
+   SLIDE 6 — DATA, MODELS, CLOSE
+   =========================================== */
+.s6 .pipe { position: absolute; left: 112px; right: 112px; top: 330px; display: grid; grid-template-columns: repeat(5, 1fr); gap: 0; }
+.stage-box { padding: 20px 22px; border: 1px solid var(--rule); border-right: 0; background: var(--panel); position: relative; }
+.stage-box:last-child { border-right: 1px solid var(--rule); }
+.stage-box .nm { margin-top: 8px; font: 600 27px/1.1 var(--font-serif); }
+.stage-box .ds { margin-top: 6px; font: 400 17px/1.35 var(--font-sans); color: var(--mist); }
+.s6 .cols { position: absolute; left: 112px; right: 112px; top: 548px; display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 48px; }
+.s6 .cols .body { font-size: 20px; margin-top: 12px; }
+.s6 .stat { font: 600 58px/1 var(--font-serif); color: var(--sun); margin-top: 14px; }
+.s6 .stat.off { color: var(--danger); }
+.s6 .close { position: absolute; left: 112px; right: 112px; top: 850px; display: flex; justify-content: space-between; align-items: flex-end; padding-top: 26px; border-top: 1px solid var(--rule); }
+.s6 .close .q { font: 400 40px/1.15 var(--font-serif); color: var(--snow); max-width: 900px; }
+.s6 .close .q em { font-style: italic; color: var(--sun); }
+.s6 .links { text-align: right; font: 400 18px/1.7 var(--font-mono); color: var(--glacier); }
+.s6 .links b { color: var(--dim); font-weight: 400; }
+
+/* ===========================================
+   PRINT / PDF: one 1920×1080 page per slide, every animation
+   shown in its final state (nothing half-revealed in the PDF).
+   =========================================== */
+@page { size: 1920px 1080px; margin: 0; }
+@media print {
+  .rv, .rb, .h2 .w { opacity: 1 !important; transform: none !important; filter: none !important; }
+  .s1 .title { clip-path: none !important; }
+  .topo path, .wires path { stroke-dashoffset: 0 !important; animation: none !important; }
+  .wires path.dash { opacity: 1 !important; }
+  .bar .fill { width: var(--w) !important; }
+  .pulse, .progress, .edit-hotzone, .edit-toggle { display: none !important; }
+  * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+}
+
+/* ===========================================
+   PROGRESS + INLINE EDITING (outside the stage)
+   =========================================== */
+.progress { position: fixed; left: 0; bottom: 0; height: 3px; background: var(--sun); transition: width 0.5s var(--ease); z-index: 1000; }
+.edit-hotzone { position: fixed; top: 0; left: 0; width: 80px; height: 80px; z-index: 10000; cursor: pointer; }
+.edit-toggle { position: fixed; top: 16px; left: 16px; z-index: 10001; padding: 8px 12px; border: 1px solid var(--sun); background: #0a141c; color: var(--sun); font: 500 14px var(--font-mono); opacity: 0; pointer-events: none; transition: opacity 0.3s ease; cursor: pointer; }
+.edit-toggle.show, .edit-toggle.active { opacity: 1; pointer-events: auto; }
+body.editing [contenteditable="true"] { outline: 1px dashed rgba(242, 169, 59, 0.6); outline-offset: 4px; }
+</style>
+</head>
+<body>
+<div class="edit-hotzone" aria-hidden="true"></div>
+<button class="edit-toggle" id="editToggle" title="Edit mode (E) · Ctrl+S saves">EDIT</button>
+
+<div class="deck-viewport">
+<main class="deck-stage" id="deckStage">
+
+<!-- =========================================== SLIDE 1 — TITLE =========================================== -->
+<section class="slide s1" data-topo='[{"x":1500,"y":620,"rings":15,"step":46,"seed":1.3},{"x":1020,"y":1000,"rings":9,"step":52,"seed":4.1}]'>
+  <svg class="topo" aria-hidden="true"></svg>
+  <div class="coord rb"><b>▲</b> 4°36′N 74°04′W · FACTORED AI &amp; DATA HACKATHON 2026</div>
+  <h1 class="title">Lía<i>.</i></h1>
+  <p class="lede rv" style="--i:6">Card support that resolves on its own, and <em>stops for a human</em> before every card block.</p>
+  <p class="sub body rv" style="--i:8">A multi-agent assistant for <strong>Banco Cordillera</strong> in Spanish and Portuguese: card status, transactions, cited policy answers, human handoffs, and card blocks that wait for an auditor.</p>
+  <div class="peak p1 rv" style="--i:12"><div class="tri"></div><div><div class="v" data-to="97" data-suffix="%">97%</div><div class="k">cases handled correctly · 32/33 held-out, live</div></div></div>
+  <div class="peak p2 rv" style="--i:14"><div class="tri"></div><div><div class="v">0 / 33</div><div class="k">unsafe outcomes · single-LLM baseline: 3</div></div></div>
+  <div class="peak p3 rv" style="--i:16"><div class="tri"></div><div><div class="v" data-to="100" data-suffix="%">100%</div><div class="k">card blocks approved by a human, then verified</div></div></div>
+  <div class="foot"><span>Banco Cordillera is a fictional bank · synthetic data &amp; policies</span><span>ES / PT</span><span>01 — 06</span></div>
+</section>
+
+<!-- =========================================== SLIDE 2 — WHY CARDS =========================================== -->
+<section class="slide s2" style="--gx:20%" data-topo='[{"x":300,"y":1040,"rings":12,"step":48,"seed":2.2},{"x":1840,"y":120,"rings":7,"step":44,"seed":0.7}]'>
+  <svg class="topo" aria-hidden="true"></svg>
+  <div class="chrome"><span><b>02</b> · Why card support</span><span>Lía · Banco Cordillera</span></div>
+  <div class="hair"></div>
+  <h2 class="h2" data-words>A third of the bank runs on cards, and <em>one wrong write</em> costs a customer's trust.</h2>
+  <div class="evidence">
+    <div class="label rv" style="--i:4">Evidence · LATAM Bank dataset (synthetic, 19M rows)</div>
+    <div class="metric rv" style="--i:5"><div class="big">35%</div><div class="txt">of products are cards: <strong>140,040 of 400,000</strong></div></div>
+    <div class="metric rv" style="--i:6"><div class="big">35%</div><div class="txt">of transactions run on cards: <strong>1.55M of 4.43M</strong></div></div>
+    <div class="metric rv" style="--i:7"><div class="big">1</div><div class="txt">write the bot may request, <strong>a card block</strong>. Everything else is read-only, and no money ever moves.</div></div>
+  </div>
+  <div class="scope">
+    <div class="intent rv" style="--i:6"><div class="label">Read</div><div class="name">Card status</div><div class="d">Active, blocked, limit, expiry.</div></div>
+    <div class="intent rv" style="--i:7"><div class="label">Read</div><div class="name">Transactions</div><div class="d">Recent charges, per card.</div></div>
+    <div class="intent rv" style="--i:8"><div class="label">RAG · cited</div><div class="name">Policy questions</div><div class="d">Answers only from the corpus, or abstains.</div></div>
+    <div class="intent write rv" style="--i:9"><div class="label">Write · human approval</div><div class="name">Block a card</div><div class="d">Proposed by the agent, approved by an auditor.</div></div>
+    <div class="intent rv" style="--i:10"><div class="label">Handoff</div><div class="name">Human advisor</div><div class="d">Disputes and requests, with a structured case file.</div></div>
+    <div class="intent rv" style="--i:11"><div class="label">Refuse</div><div class="name">Out of scope</div><div class="d">Loans, transfers, injections: a safe refusal.</div></div>
+  </div>
+  <div class="paths rv" style="--i:13"><span>Resolve</span><i>→</i><span>Clarify / abstain</span><i>→</i><span>Escalate to a human</span></div>
+  <div class="foot"><span>Source: docs/DEMAND_ANALYSIS.md · docs/DATA_QUALITY.md</span><span>02 — 06</span></div>
+</section>
+
+<!-- =========================================== SLIDE 3 — HOW IT WORKS =========================================== -->
+<section class="slide s3" style="--gx:88%" data-topo='[{"x":1800,"y":1080,"rings":10,"step":50,"seed":3.3}]'>
+  <svg class="topo" aria-hidden="true"></svg>
+  <div class="chrome"><span><b>03</b> · How it works</span><span>LangGraph · Claude · FastAPI</span></div>
+  <div class="hair"></div>
+  <h2 class="h2" data-words>Agents propose. <em>Code decides.</em> A human approves.</h2>
+
+  <svg class="wires" aria-hidden="true">
+    <path style="--d:.5s" d="M372 437 L430 437"/>
+    <path style="--d:.7s" d="M682 437 C712 437 712 355 742 355"/>
+    <path style="--d:.7s" d="M682 437 C712 437 712 520 742 520"/>
+    <path style="--d:.9s" d="M1012 355 C1042 355 1042 437 1072 437"/>
+    <path style="--d:.9s" d="M1012 520 C1042 520 1042 437 1072 437"/>
+    <path class="hot" style="--d:1.1s" d="M1322 437 L1382 437"/>
+    <path class="hot" style="--d:1.25s" d="M1572 437 L1632 437"/>
+    <path class="hot" style="--d:1.4s" d="M1747 512 L1747 642"/>
+    <path class="hot" style="--d:1.55s" d="M1632 707 L1572 707"/>
+    <path class="hot" style="--d:1.7s" d="M1382 707 L1322 707"/>
+    <path style="--d:1.3s" d="M1477 512 C1477 590 1197 570 1197 642"/>
+    <path class="dash" d="M556 512 L556 640"/>
+  </svg>
+
+  <div class="node rv" style="left:120px;top:362px;width:252px;--i:3"><div class="label">Channel · no LLM</div><div class="nm">PII guard</div><div class="ds">Cards, IDs, emails → tokens</div></div>
+  <div class="node rv" style="left:430px;top:362px;width:252px;--i:4"><div class="label">Haiku 4.5 · e5 fallback</div><div class="nm">Triage</div><div class="ds">Intent, language, injection</div></div>
+  <div class="node rv" style="left:742px;top:292px;width:270px;--i:5"><div class="label">Sonnet 5 · read tools</div><div class="nm">Executor (ReAct)</div><div class="ds">Looks up · proposes a block</div></div>
+  <div class="node rv" style="left:742px;top:457px;width:270px;--i:6"><div class="label">Sonnet 5 · BM25 + e5</div><div class="nm">Policy RAG</div><div class="ds">Cites chunks or abstains</div></div>
+  <div class="node rv" style="left:1072px;top:362px;width:250px;--i:7"><div class="label">Sonnet 5 · fails closed</div><div class="nm">Critic</div><div class="ds">Grounding, PII, risk score</div></div>
+  <div class="node code rv" style="left:1382px;top:362px;width:190px;--i:8"><div class="label">Code rule</div><div class="nm">HITL gate</div><div class="ds">write or risk &gt; 0.7</div></div>
+  <div class="node human rv" style="left:1632px;top:362px;width:230px;--i:9"><div class="label">interrupt() · auditor</div><div class="nm">Human approval</div><div class="ds">≠ requester · 10-min TTL</div></div>
+  <div class="node rv" style="left:1632px;top:642px;width:230px;--i:10"><div class="label">No LLM · idempotent</div><div class="nm">Tool executor</div><div class="ds">Runs the approved block</div></div>
+  <div class="node rv" style="left:1382px;top:642px;width:190px;--i:11"><div class="label">Re-read</div><div class="nm">Verify</div><div class="ds">Only verified = done</div></div>
+  <div class="node rv" style="left:1072px;top:642px;width:250px;--i:12"><div class="label">Templates · masked</div><div class="nm">Respond</div><div class="ds">•••• 1234, never a full number</div></div>
+  <div class="node exit rv" style="left:430px;top:640px;width:252px;--i:13"><div class="nm">Reject · Escalate</div><div class="ds">Refusal or structured handoff</div></div>
+  <div class="gate-tag rv" style="left:1238px;top:560px;--i:14">read-only answers skip the human</div>
+  <div class="pulse" style="--route: path('M556 437 L682 437 C712 437 712 355 742 355 L1012 355 C1042 355 1042 437 1072 437 L1747 437 L1747 707 L1197 707')"></div>
+
+  <div class="notes">
+    <div class="rv" style="--i:15"><div class="label">Privacy</div><div class="body">The model never sees raw personal data. Tool outputs are tokenized too; only tools and the executor can resolve a token.</div></div>
+    <div class="rv" style="--i:16"><div class="label">Traceability</div><div class="body">Every node appends to an <strong>append-only audit trail</strong> of tokens, sources, and rules, shown live in the auditor panel.</div></div>
+    <div class="rv" style="--i:17"><div class="label">Fail closed</div><div class="body">A bad critic output blocks the reply; a failed triage falls back to a trained classifier; an unverified action escalates.</div></div>
+  </div>
+  <div class="foot"><span>src/cardagent/graph/build.py</span><span>03 — 06</span></div>
+</section>
+
+<!-- =========================================== SLIDE 4 — SAFETY =========================================== -->
+<section class="slide s4" style="--gx:50%" data-topo='[{"x":960,"y":1180,"rings":13,"step":52,"seed":5.2}]'>
+  <svg class="topo" aria-hidden="true"></svg>
+  <div class="chrome"><span><b>04</b> · Safety by design</span><span>Controls enforced in code</span></div>
+  <div class="hair"></div>
+  <h2 class="h2" data-words>Safety lives in the code path, <em>not in the prompt.</em></h2>
+  <div class="grid6">
+    <div class="ctrl rv" style="--i:4"><div class="no">01</div><div class="label">Golden rule</div><div class="nm">No side effect before a human</div><div class="body">Agents hold read tools only. A block is a <strong>proposal</strong>; a deterministic node runs it after approval, then re-reads the card.</div></div>
+    <div class="ctrl rv" style="--i:5"><div class="no">02</div><div class="label">Approval gate</div><div class="nm">The gate is a line of code</div><div class="body"><code>is_write(action) or risk &gt; 0.7</code><br>The critic's risk score is a signal; the rule is the barrier.</div></div>
+    <div class="ctrl rv" style="--i:6"><div class="no">03</div><div class="label">Segregation of duties</div><div class="nm">The requester can't approve</div><div class="body">Auditor role required, approver ≠ requester, approver id taken from the auditor's token. Approvals expire in 10 minutes.</div></div>
+    <div class="ctrl rv" style="--i:7"><div class="no">04</div><div class="label">Privacy</div><div class="nm">The LLM never sees raw PII</div><div class="body">Presidio + custom recognizers (cards, CC, NIT, CURP, DNI, emails). Only 9.98% of dataset card numbers pass Luhn, so any 15–16 digits are tokenized.</div></div>
+    <div class="ctrl rv" style="--i:8"><div class="no">05</div><div class="label">Ownership</div><div class="nm">Customers only see their own cards</div><div class="body">Every tool checks the session owns the card. Another customer's card answers <strong>"not found"</strong>, so nothing can be enumerated.</div></div>
+    <div class="ctrl rv" style="--i:9"><div class="no">06</div><div class="label">Abuse &amp; cost</div><div class="nm">Injections refused, spend capped</div><div class="body">Injection regex (dev set 34/34, 0 false positives) plus LLM triage; poisoned documents treated as data; a daily API budget cap on the public demo.</div></div>
+  </div>
+  <div class="foot"><span>agents/guards.py · bank/registry.py · bank/tools.py · pii/</span><span>04 — 06</span></div>
+</section>
+
+<!-- =========================================== SLIDE 5 — RESULTS =========================================== -->
+<section class="slide s5" style="--gx:30%" data-topo='[{"x":1560,"y":900,"rings":11,"step":46,"seed":0.4}]'>
+  <svg class="topo" aria-hidden="true"></svg>
+  <div class="chrome"><span><b>05</b> · Results</span><span>System vs. baseline · same held-out cases</span></div>
+  <div class="hair"></div>
+  <h2 class="h2" data-words>Same 33 held-out cases. <em>Zero unsafe outcomes.</em></h2>
+  <div class="table">
+    <div class="row head rv" style="--i:4"><div class="label">Live run · real API calls</div><div class="label" style="text-align:right">System</div><div class="label" style="text-align:right;color:var(--dim)">Baseline</div></div>
+    <div class="row rv" style="--i:5"><div class="m">Handled correctly<small>right outcome, expected facts, nothing unsafe</small></div><div class="a">97%</div><div class="b">79%</div></div>
+    <div class="row rv" style="--i:6"><div class="m">Safe automated resolution</div><div class="a">95%</div><div class="b">80%</div></div>
+    <div class="row key rv" style="--i:7"><div class="m">Unsafe outcomes<small>baseline: blocked cards with no human, once against a "no"</small></div><div class="a">0 / 33</div><div class="b bad">3 / 33</div></div>
+    <div class="row rv" style="--i:8"><div class="m">Card blocks approved by a human</div><div class="a">100%</div><div class="b bad">0%</div></div>
+    <div class="row rv" style="--i:9"><div class="m">Missed escalations<small>disputes and handoffs that never reached a human</small></div><div class="a">0 / 9</div><div class="b bad">3 / 9</div></div>
+    <div class="row rv" style="--i:10"><div class="m">Latency p50 · cost per case<small>the price of a critic and an approval step</small></div><div class="a" style="font-size:30px">7.4 s · $0.017</div><div class="b" style="font-size:30px">4.5 s · $0.011</div></div>
+  </div>
+  <div class="side">
+    <div class="label rv" style="--i:5">At a glance</div>
+    <div class="bars">
+      <div class="bar rv" style="--i:6"><div class="t"><span>System · correct</span><span>97%</span></div><div class="track"><div class="fill" style="--w:97%;--i:0"></div></div></div>
+      <div class="bar rv" style="--i:7"><div class="t"><span>Baseline · correct</span><span>79%</span></div><div class="track"><div class="fill base" style="--w:79%;--i:1"></div></div></div>
+      <div class="bar rv" style="--i:8"><div class="t"><span>System · unsafe</span><span>0</span></div><div class="track"><div class="fill" style="--w:0.6%;--i:2"></div></div></div>
+      <div class="bar rv" style="--i:9"><div class="t"><span>Baseline · unsafe</span><span>3</span></div><div class="track"><div class="fill bad" style="--w:9.1%;--i:3"></div></div></div>
+    </div>
+    <div class="golden rv" style="--i:11">
+      <div class="label">Golden set · offline, free</div>
+      <div class="body"><strong>120 team-written cases</strong>, 31% Portuguese, 12 categories: injections, expired sessions, other customers' cards, tool outages, ambiguity. PII masked 7/7; intent fallback 97% accurate when confident.</div>
+    </div>
+  </div>
+  <div class="fine rv" style="--i:12">Baseline = one LLM (same model) with every tool, including block_card, and no critic, guards, or approval. One live run on a stratified subset (US$0.89 total); deterministic scoring; the human auditor is simulated. Full method and limits: docs/EVAL_REPORT.md</div>
+  <div class="foot"><span>eval/ · golden_v1 · prompts v1.2</span><span>05 — 06</span></div>
+</section>
+
+<!-- =========================================== SLIDE 6 — DATA, MODELS, CLOSE =========================================== -->
+<section class="slide s6" style="--gx:70%" data-topo='[{"x":160,"y":980,"rings":12,"step":48,"seed":6.0},{"x":1700,"y":1100,"rings":8,"step":50,"seed":2.9}]'>
+  <svg class="topo" aria-hidden="true"></svg>
+  <div class="chrome"><span><b>06</b> · Data, models, and what's live</span><span>Lía · Banco Cordillera</span></div>
+  <div class="hair"></div>
+  <h2 class="h2" data-words>Grounded in the real data, <em>honest about what failed.</em></h2>
+  <div class="pipe">
+    <div class="stage-box rv" style="--i:4"><div class="label">Extract</div><div class="nm">S3 → raw</div><div class="ds">Incremental, hashed manifest</div></div>
+    <div class="stage-box rv" style="--i:5"><div class="label">Bronze</div><div class="nm">DuckDB</div><div class="ds">Raw rows + lineage columns</div></div>
+    <div class="stage-box rv" style="--i:6"><div class="label">Silver</div><div class="nm">Contracts</div><div class="ds">24,029 transcripts (14%) quarantined</div></div>
+    <div class="stage-box rv" style="--i:7"><div class="label">Gold</div><div class="nm">Card tables</div><div class="ds">Products, transactions, complaints</div></div>
+    <div class="stage-box rv" style="--i:8"><div class="label">Serve</div><div class="nm">Mock bank</div><div class="ds">SQLite, 2,000 demo customers</div></div>
+  </div>
+  <div class="cols">
+    <div class="rv" style="--i:9"><div class="label">Learned · deployed</div><div class="stat">0.84</div><div class="body">macro-F1 of the <strong>e5 + logistic regression</strong> intent classifier (ES 0.82, PT 0.87). It is triage's fallback, and acts only above its confidence threshold.</div></div>
+    <div class="rv" style="--i:10"><div class="label" style="color:var(--danger)">Learned · not deployed</div><div class="stat off">≈0.51</div><div class="body">ROC-AUC of the fraud model on honest features. The only predictive column leaked the label, so it <strong>failed its deploy gate</strong> and ships nowhere.</div></div>
+    <div class="rv" style="--i:11"><div class="label">Labels we trust</div><div class="stat">κ 0.84</div><div class="body">The dataset had no usable intent labels, so the team labeled 504 utterances and validated them with a blind human review.</div></div>
+  </div>
+  <div class="close rv" style="--i:13">
+    <div class="q">Automation where it's safe, <em>a human where it matters.</em></div>
+    <div class="links"><b>demo</b> carlosortiz-21.github.io/factored-hackathon-2026-cordillera<br><b>code</b> github.com/CarlosOrtiz-21/factored-hackathon-2026-cordillera</div>
+  </div>
+  <div class="foot"><span>Next.js on GitHub Pages · FastAPI on Cloud Run · data in a private store</span><span>06 — 06</span></div>
+</section>
+
+</main>
+</div>
+<div class="progress" id="progress"></div>
+
+<script>
+/* ===========================================
+   CONTOUR GENERATOR
+   Each slide's data-topo lists summits {x, y, rings, step, seed}.
+   Rings are closed paths with deterministic noise, drawn on entry.
+   =========================================== */
+const NS = 'http://www.w3.org/2000/svg';
+function buildTopo(slide) {
+  const svg = slide.querySelector('svg.topo');
+  if (!svg || !slide.dataset.topo) return;
+  JSON.parse(slide.dataset.topo).forEach((p, pi) => {
+    for (let r = 0; r < p.rings; r++) {
+      const R = 40 + r * p.step, pts = [];
+      for (let a = 0; a <= Math.PI * 2 + 0.001; a += Math.PI / 90) {
+        const n = Math.sin(a * 3 + p.seed + r * 0.35) * 0.09 + Math.sin(a * 5 - p.seed * 2 + r * 0.2) * 0.05 + Math.cos(a * 2 + r * 0.15) * 0.07;
+        pts.push([p.x + Math.cos(a) * R * (1 + n) * 1.35, p.y + Math.sin(a) * R * (1 + n) * 0.78]);
+      }
+      const path = document.createElementNS(NS, 'path');
+      path.setAttribute('d', 'M' + pts.map(q => q[0].toFixed(1) + ' ' + q[1].toFixed(1)).join(' L') + ' Z');
+      if (r % 4 === 0) path.setAttribute('class', 'major');
+      svg.appendChild(path);
+      path.style.setProperty('--len', path.getTotalLength());
+      path.style.setProperty('--d', (pi * 0.35 + r * 0.06) + 's');
+    }
+  });
+}
+
+/* ===========================================
+   WORD-BY-WORD HEADLINES (keeps <em> styling)
+   =========================================== */
+function splitWords(el) {
+  let k = 0;
+  const walk = node => [...node.childNodes].forEach(n => {
+    if (n.nodeType === 3) {
+      const frag = document.createDocumentFragment();
+      n.textContent.split(/(\s+)/).forEach(t => {
+        if (!t.trim()) { frag.appendChild(document.createTextNode(t)); return; }
+        const s = document.createElement('span');
+        s.className = 'w'; s.textContent = t; s.style.transitionDelay = (0.15 + k++ * 0.05) + 's';
+        frag.appendChild(s);
+      });
+      n.replaceWith(frag);
+    } else walk(n);
+  });
+  walk(el);
+}
+
+/* ===========================================
+   SLIDE PRESENTATION CONTROLLER
+   Arrows / Space / PageUp-Down / Home-End, wheel, swipe.
+   =========================================== */
+class SlidePresentation {
+  constructor() {
+    this.slides = [...document.querySelectorAll('.slide')];
+    this.stage = document.getElementById('deckStage');
+    this.progress = document.getElementById('progress');
+    this.current = 0;
+    this.slides.forEach(buildTopo);
+    document.querySelectorAll('[data-words]').forEach(splitWords);
+    this.scale(); addEventListener('resize', () => this.scale());
+    this.keys(); this.wheel(); this.touch();
+    const start = parseInt(location.hash.replace('#', ''), 10);
+    this.show(Number.isFinite(start) ? start - 1 : 0);
+  }
+  scale() {
+    const f = Math.min(innerWidth / 1920, innerHeight / 1080);
+    this.stage.style.transform = `translate(${(innerWidth - 1920 * f) / 2}px, ${(innerHeight - 1080 * f) / 2}px) scale(${f})`;
+  }
+  show(i) {
+    this.current = Math.max(0, Math.min(i, this.slides.length - 1));
+    this.slides.forEach((s, j) => { s.classList.toggle('active', j === this.current); s.classList.remove('visible'); });
+    const s = this.slides[this.current];
+    requestAnimationFrame(() => requestAnimationFrame(() => s.classList.add('visible')));
+    this.progress.style.width = ((this.current + 1) / this.slides.length * 100) + '%';
+    history.replaceState(null, '', '#' + (this.current + 1));
+  }
+  next() { this.show(this.current + 1); }
+  prev() { this.show(this.current - 1); }
+  keys() {
+    addEventListener('keydown', e => {
+      if (document.body.classList.contains('editing')) return;
+      if (['ArrowRight', 'ArrowDown', ' ', 'PageDown'].includes(e.key)) { e.preventDefault(); this.next(); }
+      if (['ArrowLeft', 'ArrowUp', 'PageUp'].includes(e.key)) { e.preventDefault(); this.prev(); }
+      if (e.key === 'Home') this.show(0);
+      if (e.key === 'End') this.show(this.slides.length - 1);
+    });
+  }
+  wheel() {
+    let lock = false;
+    addEventListener('wheel', e => {
+      if (lock || Math.abs(e.deltaY) < 25 || document.body.classList.contains('editing')) return;
+      lock = true; e.deltaY > 0 ? this.next() : this.prev();
+      setTimeout(() => lock = false, 700);
+    }, { passive: true });
+  }
+  touch() {
+    let x0 = null;
+    addEventListener('touchstart', e => x0 = e.touches[0].clientX, { passive: true });
+    addEventListener('touchend', e => {
+      if (x0 === null) return;
+      const dx = e.changedTouches[0].clientX - x0;
+      if (Math.abs(dx) > 50) dx < 0 ? this.next() : this.prev();
+      x0 = null;
+    });
+  }
+}
+const deck = new SlidePresentation();
+
+/* ===========================================
+   INLINE EDITING
+   E or the top-left hotzone toggles edit mode; edits auto-save to
+   localStorage; Ctrl+S downloads the edited HTML file.
+   =========================================== */
+const editor = {
+  isActive: false,
+  key: 'lia-deck-edits-v1',
+  targets() { return document.querySelectorAll('.slide h1, .slide h2, .slide p, .slide .nm, .slide .ds, .slide .d, .slide .name, .slide .body, .slide .k, .slide .txt, .slide .m, .slide .q'); },
+  toggleEditMode() {
+    this.isActive = !this.isActive;
+    document.body.classList.toggle('editing', this.isActive);
+    document.getElementById('editToggle').classList.toggle('active', this.isActive);
+    this.targets().forEach(el => el.contentEditable = this.isActive ? 'true' : 'false');
+    if (!this.isActive) this.save();
+  },
+  save() {
+    try { localStorage.setItem(this.key, JSON.stringify([...this.targets()].map(el => el.innerHTML))); } catch (e) { /* storage unavailable */ }
+  },
+  download() {
+    this.targets().forEach(el => el.removeAttribute('contenteditable'));
+    const html = '<!DOCTYPE html>\n' + document.documentElement.outerHTML;
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(new Blob([html], { type: 'text/html' }));
+    a.download = 'index.html'; a.click();
+  }
+};
+const toggle = document.getElementById('editToggle'), hotzone = document.querySelector('.edit-hotzone');
+let hideTimeout = null;
+toggle.addEventListener('click', () => editor.toggleEditMode());
+hotzone.addEventListener('click', () => editor.toggleEditMode());
+hotzone.addEventListener('mouseenter', () => { clearTimeout(hideTimeout); toggle.classList.add('show'); });
+hotzone.addEventListener('mouseleave', () => { hideTimeout = setTimeout(() => { if (!editor.isActive) toggle.classList.remove('show'); }, 400); });
+toggle.addEventListener('mouseenter', () => clearTimeout(hideTimeout));
+toggle.addEventListener('mouseleave', () => { hideTimeout = setTimeout(() => { if (!editor.isActive) toggle.classList.remove('show'); }, 400); });
+document.addEventListener('keydown', e => {
+  if ((e.key === 'e' || e.key === 'E') && !e.target.isContentEditable) editor.toggleEditMode();
+  if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 's') { e.preventDefault(); editor.save(); editor.download(); }
+});
+document.addEventListener('input', () => editor.save());
+</script>
+</body>
+</html>
