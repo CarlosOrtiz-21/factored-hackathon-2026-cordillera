@@ -259,6 +259,44 @@ def test_message_too_long_is_rejected(env):
     assert r.status_code == 422
 
 
+def test_daily_budget_cap_refuses_new_turns_once_spent(env):
+    client, llm, clock, container = env
+    container.settings.daily_budget_usd = 0.0001  # one FakeLLM call costs more than this
+    headers, thread_id, _ = login(client)
+    llm.add("triage", triage("human_request"))
+    chat(client, headers, "asesor", thread_id)
+    spent = client.get("/api/health").json()["budget"]["spent_today_usd"]
+    assert spent > 0.0001
+    r = client.post(
+        "/api/chat/stream", headers=headers, json={"message": "hola", "thread_id": thread_id}
+    )
+    assert r.status_code == 503
+    clock.advance(days=1)  # a new UTC day resets the budget (and the session expired)
+    headers, thread_id, _ = login(client)
+    llm.add("triage", triage("human_request"))
+    chat(client, headers, "asesor", thread_id)
+
+
+def test_cors_accepts_every_configured_origin(tmp_path):
+    from fastapi.testclient import TestClient as Client
+
+    settings = Settings(
+        _env_file=None,
+        frontend_origin="http://localhost:3000, https://demo.example.org",
+        bank_db_path=tmp_path / "b.db",
+        checkpoint_path=tmp_path / "cp.db",
+        vault_db_path=tmp_path / "v.db",
+        vault_key=Fernet.generate_key().decode(),
+    )
+    container = build_container(settings, llm=FakeLLM(), intent_fallback=lambda t: None)
+    with Client(create_app(container)) as client:
+        for origin in ("http://localhost:3000", "https://demo.example.org"):
+            r = client.get("/api/health", headers={"Origin": origin})
+            assert r.headers.get("access-control-allow-origin") == origin
+        r = client.get("/api/health", headers={"Origin": "https://evil.example"})
+        assert "access-control-allow-origin" not in r.headers
+
+
 def test_rate_limit(env):
     client, llm, _, _ = env
     headers, thread_id, _ = login(client)

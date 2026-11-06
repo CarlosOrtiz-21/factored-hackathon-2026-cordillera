@@ -96,6 +96,8 @@ export function describeError(err: unknown): string {
         return "Tu mensaje es demasiado largo. Intenta resumirlo.";
       case 429:
         return "Estás enviando mensajes muy rápido. Espera un momento.";
+      case 503:
+        return "La demo alcanzó su límite de uso de hoy. Vuelve a intentarlo mañana.";
     }
   }
   return "Tuve un problema técnico. Intenta de nuevo en unos minutos; si es urgente, llama a la línea #2222.";

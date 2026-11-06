@@ -44,6 +44,10 @@ CREATE TABLE IF NOT EXISTS threads (       -- which customer owns each conversat
     customer_id TEXT NOT NULL,
     created_at TEXT NOT NULL
 );
+CREATE TABLE IF NOT EXISTS llm_spend (     -- estimated Anthropic spend per UTC day (budget cap)
+    day TEXT PRIMARY KEY,
+    usd REAL NOT NULL
+);
 CREATE TABLE IF NOT EXISTS approval_requests (
     thread_id TEXT NOT NULL,
     requested_at TEXT NOT NULL,

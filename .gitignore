@@ -43,3 +43,4 @@ docs/LATAM_Bank_Dataset_Summary*.pdf
 # Local Claude Code state
 .claude/
 *.tsbuildinfo
+/dist/

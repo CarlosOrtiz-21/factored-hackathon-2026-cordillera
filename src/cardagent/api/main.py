@@ -87,7 +87,8 @@ def create_app(container: Container | None = None) -> FastAPI:
     app.state.container = c
     app.add_middleware(
         CORSMiddleware,
-        allow_origins=[c.settings.frontend_origin],
+        # Comma-separated, e.g. "http://localhost:3000,https://<user>.github.io"
+        allow_origins=[o.strip() for o in c.settings.frontend_origin.split(",") if o.strip()],
         allow_credentials=True,
         allow_methods=["GET", "POST"],
         allow_headers=["Authorization", "Content-Type"],
@@ -199,6 +200,10 @@ def create_app(container: Container | None = None) -> FastAPI:
         return {
             "status": "ok",
             "prompt_version": s.prompt_version,
+            "budget": {
+                "daily_usd": s.daily_budget_usd,
+                "spent_today_usd": round(c.runner.spent_today(), 4),
+            },
             "models": {
                 "triage": s.triage_model,
                 "executor": s.executor_model,
@@ -243,6 +248,9 @@ def create_app(container: Container | None = None) -> FastAPI:
         )
         if not c.limiter.allow(session.session_id):
             raise HTTPException(429, "too many messages, wait a moment")
+        budget = c.settings.daily_budget_usd
+        if budget and c.runner.spent_today() >= budget:  # public demo: cap the API spend
+            raise HTTPException(503, "daily demo budget reached")
         if c.runner.pending_request(thread_id) is not None:
             raise HTTPException(409, "an action in this conversation is awaiting approval")
 

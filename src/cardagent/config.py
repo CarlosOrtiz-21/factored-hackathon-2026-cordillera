@@ -58,6 +58,9 @@ class Settings(BaseSettings):
     frontend_origin: str = "http://localhost:3000"
     max_message_chars: int = Field(default=2000, ge=1)
     rate_limit_per_minute: int = Field(default=20, ge=1)
+    # Public-demo safety: new chat turns are refused (503) once today's estimated Anthropic
+    # spend reaches this. 0 disables the cap. Pending approvals can still be decided.
+    daily_budget_usd: float = Field(default=5.0, ge=0.0)
     checkpoint_path: Path = Path("data/checkpoints.db")
     vault_db_path: Path = Path("data/vault.db")
     vault_key: SecretStr | None = None  # else a key file is created at vault_key_path

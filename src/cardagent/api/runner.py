@@ -99,6 +99,32 @@ class TurnRunner:
                         "message": ERROR_TEXT.get(language, ERROR_TEXT["es"]),
                     },
                 )
+            finally:  # failed turns cost money too
+                self._record_spend(thread_id, before)
+
+    # --- budget cap (public demo) ------------------------------------------------------
+
+    def _record_spend(self, thread_id: str, usage_before: int) -> None:
+        try:
+            usage = [UsageRecord(**u) for u in self.state(thread_id).get("usage", [])]
+        except Exception:
+            log.exception("could not read usage thread=%s", thread_id)
+            return
+        cost = usage_cost(usage[usage_before:])
+        if cost <= 0:
+            return
+        with self.db.transaction() as conn:
+            conn.execute(
+                "INSERT INTO llm_spend VALUES (?, ?) "
+                "ON CONFLICT(day) DO UPDATE SET usd = usd + excluded.usd",
+                (self.clock().date().isoformat(), cost),
+            )
+
+    def spent_today(self) -> float:
+        row = self.db.one(
+            "SELECT usd FROM llm_spend WHERE day = ?", (self.clock().date().isoformat(),)
+        )
+        return float(row[0]) if row else 0.0
 
     def _stream(self, thread_id: str, payload, language: str) -> str:
         for mode, chunk in self.graph.stream(
