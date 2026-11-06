@@ -119,14 +119,20 @@ def upload_data(user: str, repo_name: str) -> None:
 # --- Google Cloud Run --------------------------------------------------------------------
 
 
-def gcp_setup(project: str, budget_usd: float) -> None:
-    """Enable the APIs and add a budget alert (an alert e-mails you; it doesn't stop spend)."""
-    gcloud("services", "enable", *GCP_APIS, "--project", project)
+def gcp_setup(project: str, alert_amount: str) -> None:
+    """Enable the APIs and add a budget alert (an alert e-mails you; it doesn't stop spend).
+
+    Billing calls charge their API quota to THIS project (--billing-project): gcloud's
+    default shared quota project often answers 429 (found while linking billing).
+    """
+    gcloud("services", "enable", "cloudbilling.googleapis.com", *GCP_APIS, "--project", project)
+    quota = f"--billing-project={project}"
     billing = gcloud(
         "billing",
         "projects",
         "describe",
         project,
+        quota,
         "--format=value(billingAccountName)",
         capture=True,
     ).removeprefix("billingAccounts/")
@@ -138,12 +144,13 @@ def gcp_setup(project: str, budget_usd: float) -> None:
         "create",
         f"--billing-account={billing}",
         "--display-name=cordillera-lia",
-        f"--budget-amount={budget_usd}USD",
+        f"--budget-amount={alert_amount}",  # in the billing account currency
         f"--filter-projects=projects/{project}",
         "--threshold-rule=percent=0.5",
         "--threshold-rule=percent=1.0",
+        quota,
     )
-    print(f"APIs enabled and a US${budget_usd} budget alert created for {project}")
+    print(f"APIs enabled and a {alert_amount} budget alert created for {project}")
 
 
 def gcp_deploy(project: str, region: str, service: str, env: dict[str, str]) -> None:
@@ -239,7 +246,9 @@ def main() -> None:
     ap.add_argument("--service", default="cordillera-lia-api")
     ap.add_argument("--frontend-origin", default="http://localhost:3000")
     ap.add_argument("--daily-budget-usd", type=float, default=2.0)
-    ap.add_argument("--alert-budget-usd", type=float, default=1.0)
+    ap.add_argument(
+        "--alert-budget", default="5000COP", help="e.g. 5000COP or 1USD (account currency)"
+    )
     args = ap.parse_args()
 
     if args.step == "stage":
@@ -253,7 +262,7 @@ def main() -> None:
     elif not args.project:
         ap.error("--project is required for the gcp-* steps")
     elif args.step == "gcp-setup":
-        gcp_setup(args.project, args.alert_budget_usd)
+        gcp_setup(args.project, args.alert_budget)
     else:
         gcp_deploy(
             args.project,
