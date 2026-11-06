@@ -1,0 +1,45 @@
+# Dataset (~19M rows) — download from S3, never commit
+/data/
+
+# Contains AWS credentials — must never reach the public repo
+docs/LATAM_Bank_Complete_Data_Dictionary*.pdf
+
+# Secrets / env
+.env
+.env.*
+!.env.example
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+*.egg-info/
+build/
+dist/
+wheels/
+
+# Node / Next.js
+node_modules/
+.next/
+out/
+
+# Local state
+*.sqlite
+*.db
+.DS_Store
+
+# Trained model artifacts (reproducible: uv run python -m pipelines.models.intents / .fraud)
+/models/
+
+# Organizer material: link to the official source instead of redistributing it
+docs/Datathon_2026_Kickoff*.pdf
+docs/Factored AI & Data Hackathon 2026*.pdf
+docs/LATAM_Bank_Dataset_Summary*.pdf
+
+# Local Claude Code state
+.claude/
+*.tsbuildinfo

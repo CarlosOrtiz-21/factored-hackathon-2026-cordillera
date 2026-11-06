@@ -1,0 +1,62 @@
+[project]
+name = "cardagent"
+version = "0.1.0"
+description = "AI-first card-support assistant with human-in-the-loop approval (Factored Hackathon 2026)"
+readme = "README.md"
+requires-python = ">=3.11,<3.12"
+dependencies = [
+    "anthropic>=1.8.0",
+    "boto3>=1.43.103",
+    "cryptography>=50.0.1",
+    "duckdb>=1.5.5",
+    "es-core-news-md",
+    "fastapi>=0.141.1",
+    "json-repair>=0.63.5",
+    "langgraph>=1.2.12",
+    "langgraph-checkpoint-sqlite>=3.1.1",
+    "pandas>=3.0.6",
+    "presidio-analyzer>=2.2.364",
+    "pydantic>=2.9",
+    "pydantic-settings>=2.5",
+    "rank-bm25>=0.2.2",
+    "scikit-learn>=1.9.1",
+    "sentence-transformers>=6.1.0",
+    "spacy>=3.7,<4",
+    "uvicorn[standard]>=0.54.0",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/cardagent"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP"]
+
+[tool.uv.sources]
+es-core-news-md = { url = "https://github.com/explosion/spacy-models/releases/download/es_core_news_md-3.8.0/es_core_news_md-3.8.0-py3-none-any.whl" }
+
+[dependency-groups]
+dev = [
+    "httpx>=0.28.1",
+    "pytest>=9.1.1",
+    "ruff>=0.16.9",
+]
+
+[tool.ruff.lint.per-file-ignores]
+# Prompt text is prose: long lines are intentional.
+"src/cardagent/agents/prompts.py" = ["E501"]
+
+[tool.ruff.lint.flake8-bugbear]
+# FastAPI's dependency-injection idiom: Depends()/Header() as defaults is intended.
+extend-immutable-calls = ["fastapi.Depends", "fastapi.Header"]

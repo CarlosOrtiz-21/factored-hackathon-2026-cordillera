@@ -1,0 +1,65 @@
+@import "tailwindcss";
+
+/* Banco Cordillera (FICTIONAL) design tokens. Tailwind v4 turns each --color-* into
+   utilities: bg-andes-700, text-sunrise-500, etc. */
+@theme {
+  --color-andes-50: #eef6f7;
+  --color-andes-100: #d5e9ec;
+  --color-andes-200: #aed3d9;
+  --color-andes-500: #2a7f8f;
+  --color-andes-600: #1d6676;
+  --color-andes-700: #155262;
+  --color-andes-800: #0f404d;
+  --color-andes-900: #0a2e38;
+
+  --color-sunrise-100: #fdf1dc;
+  --color-sunrise-400: #f0b648;
+  --color-sunrise-600: #b97a10; /* icons only: 3.2:1 on sunrise-100 (ok for graphics) */
+  --color-sunrise-700: #8a5a08; /* text on sunrise-100: 5.3:1 */
+
+  --color-ink: #17242a;
+  --color-mist: #f5f7f8;
+  --color-line: #7b8794; /* input borders: 3.7:1 on white (WCAG 1.4.11 needs 3:1) */
+
+  --font-sans: ui-sans-serif, system-ui, "Segoe UI", Roboto, "Helvetica Neue", Arial,
+    sans-serif;
+}
+
+html,
+body {
+  background: var(--color-mist);
+  color: var(--color-ink);
+}
+
+:focus-visible {
+  outline: 2px solid var(--color-andes-500);
+  outline-offset: 2px;
+}
+
+/* Typing dots shown while Lía works. */
+@keyframes lia-pulse {
+  0%,
+  80%,
+  100% {
+    opacity: 0.25;
+  }
+  40% {
+    opacity: 1;
+  }
+}
+.lia-dot {
+  animation: lia-pulse 1.2s infinite ease-in-out;
+}
+.lia-dot:nth-child(2) {
+  animation-delay: 0.15s;
+}
+.lia-dot:nth-child(3) {
+  animation-delay: 0.3s;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .lia-dot {
+    animation: none;
+    opacity: 0.6;
+  }
+}

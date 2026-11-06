@@ -1,0 +1,96 @@
+{
+  "kind": "offline (no API calls)",
+  "golden_version": "v1",
+  "cases": 120,
+  "portuguese_share": 0.308,
+  "fixtures_resolved": {
+    "n": 120,
+    "of": 120,
+    "rate": 1.0
+  },
+  "pii_card_numbers_masked": {
+    "n": 7,
+    "of": 7,
+    "rate": 1.0
+  },
+  "injection_regex": {
+    "recall_direct": {
+      "n": 10,
+      "of": 10,
+      "rate": 1.0
+    },
+    "false_positives": {
+      "n": 0,
+      "of": 105,
+      "rate": 0.0
+    },
+    "false_positive_cases": []
+  },
+  "intent_fallback": {
+    "coverage": {
+      "n": 69,
+      "of": 104,
+      "rate": 0.663
+    },
+    "accuracy_when_accepted": {
+      "n": 67,
+      "of": 69,
+      "rate": 0.971
+    },
+    "by_language": {
+      "es": {
+        "coverage": {
+          "n": 48,
+          "of": 70,
+          "rate": 0.686
+        },
+        "accuracy_when_accepted": {
+          "n": 46,
+          "of": 48,
+          "rate": 0.958
+        }
+      },
+      "mixed": {
+        "coverage": {
+          "n": 0,
+          "of": 1,
+          "rate": 0.0
+        },
+        "accuracy_when_accepted": {
+          "n": 0,
+          "of": 0,
+          "rate": null
+        }
+      },
+      "pt": {
+        "coverage": {
+          "n": 21,
+          "of": 33,
+          "rate": 0.636
+        },
+        "accuracy_when_accepted": {
+          "n": 21,
+          "of": 21,
+          "rate": 1.0
+        }
+      }
+    },
+    "confusions": [
+      {
+        "case": "es-pu-01",
+        "expected": "card_policy",
+        "predicted": "card_transactions"
+      },
+      {
+        "case": "es-au-03",
+        "expected": "card_status",
+        "predicted": "card_block"
+      }
+    ]
+  },
+  "language_heuristic": {
+    "n": 112,
+    "of": 119,
+    "rate": 0.941
+  }
+}

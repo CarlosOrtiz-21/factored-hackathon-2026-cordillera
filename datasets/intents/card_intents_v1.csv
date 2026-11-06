@@ -1,0 +1,505 @@
+group,intent,lang,text
+s01,card_status,es,¿Mi tarjeta está activa?
+s01,card_status,es,oye me pueden checar si mi tarjeta ya quedó activada
+s01,card_status,es,"Buenas, ¿me colabora confirmando si la tarjeta está habilitada?"
+s01,card_status,es,"che, ¿la tarjeta ya está activa o todavía no?"
+s01,card_status,pt,Meu cartão está ativo?
+s01,card_status,pt,vcs podem confirmar se o cartão já foi ativado?
+s02,card_status,es,¿Por qué me rechazaron la tarjeta en la tienda?
+s02,card_status,es,"me declinaron el pago con mi plástico, qué onda con mi tarjeta"
+s02,card_status,es,"Regáleme info, la tarjeta no pasó en el supermercado"
+s02,card_status,es,"no me anda la tarjeta, me la rechazan en todos lados"
+s02,card_status,pt,Por que meu cartão foi recusado na loja?
+s02,card_status,pt,"o cartão não passa em lugar nenhum, o que aconteceu?"
+s03,card_status,es,¿Mi tarjeta está bloqueada?
+s03,card_status,es,quiero saber si tienen bloqueada mi tarjeta <TARJETA_1>
+s03,card_status,es,¿Será que me bloquearon la tarjeta? no me funciona
+s03,card_status,es,tengo la tarjeta bloqueada? fijate porfa
+s03,card_status,pt,Meu cartão está bloqueado?
+s03,card_status,pt,vocês bloquearam meu cartão <TARJETA_1>?
+s04,card_status,es,¿Cuándo vence mi tarjeta?
+s04,card_status,es,cual es la fecha de vencimiento de mi tarjeta de credito
+s04,card_status,es,¿Hasta cuándo me sirve la tarjeta de débito?
+s04,card_status,es,decime cuándo se me vence el plástico
+s04,card_status,pt,Quando vence o meu cartão?
+s04,card_status,pt,qual a data de validade do meu cartão de crédito?
+s05,card_status,es,¿Cuánto cupo disponible tengo en la tarjeta de crédito?
+s05,card_status,es,cuanto me queda de línea de crédito en la tarjeta
+s05,card_status,es,¿Me dice cuál es el cupo total de mi tarjeta?
+s05,card_status,es,¿cuánto límite me queda para gastar con la tarjeta?
+s05,card_status,pt,Quanto de limite disponível eu tenho no cartão?
+s05,card_status,pt,qual é o limite do meu cartão de crédito?
+s06,card_status,es,¿Cuál es el saldo de mi tarjeta de crédito?
+s06,card_status,es,cuanto debo en la tarjeta
+s06,card_status,es,Necesito saber el saldo actual de la tarjeta <TARJETA_1>
+s06,card_status,es,¿cuánto tengo gastado en la tarjeta hasta ahora?
+s06,card_status,pt,Qual é o saldo da fatura do meu cartão?
+s06,card_status,pt,quanto estou devendo no cartão de crédito?
+s07,card_status,es,¿Por qué aparece mi tarjeta como suspendida?
+s07,card_status,es,"en la app me sale la tarjeta suspendida, qué pasó"
+s07,card_status,es,"Me aparece que la tarjeta está suspendida, ¿me explica?"
+s07,card_status,es,¿por qué figura suspendida mi tarjeta?
+s07,card_status,pt,Por que meu cartão aparece como suspenso?
+s07,card_status,pt,"no app diz que o cartão está suspenso, por quê?"
+s08,card_status,es,Quiero saber el estado de la tarjeta <TARJETA_1>
+s08,card_status,es,como esta la tarjeta terminada en 4060
+s08,card_status,es,¿En qué estado está mi tarjeta de débito?
+s08,card_status,es,revisame el estado de la tarjeta <TARJETA_2> porfa
+s08,card_status,pt,Qual é a situação do cartão <TARJETA_1>?
+s08,card_status,pt,como está o meu cartão de débito?
+s09,card_status,es,¿Mi tarjeta funciona en el exterior?
+s09,card_status,es,tengo habilitada la tarjeta para compras internacionales?
+s09,card_status,es,"Voy de viaje, ¿la tarjeta ya sirve afuera del país?"
+s09,card_status,es,¿puedo usar la tarjeta en Chile o está solo para acá?
+s09,card_status,pt,Meu cartão funciona no exterior?
+s09,card_status,pt,o cartão está habilitado para compras internacionais?
+s10,card_status,es,¿Cuándo tengo que pagar mi tarjeta?
+s10,card_status,es,cual es mi fecha limite de pago de la tarjeta
+s10,card_status,es,¿Cuánto es el pago mínimo de este mes de mi tarjeta?
+s10,card_status,es,¿para cuándo vence el resumen de la tarjeta?
+s10,card_status,pt,Quando vence a fatura do meu cartão?
+s10,card_status,pt,qual é o pagamento mínimo da fatura deste mês?
+s11,card_status,es,"El cajero no me deja sacar plata con la tarjeta, ¿está bien?"
+s11,card_status,es,no puedo retirar en el cajero con mi tarjeta de débito
+s11,card_status,es,la tarjeta no me funciona en el cajero automatico
+s11,card_status,es,"el cajero me dice tarjeta inválida, ¿qué tiene?"
+s11,card_status,pt,Não consigo sacar no caixa eletrônico com meu cartão
+s11,card_status,pt,o caixa diz que meu cartão é inválido
+s12,card_status,es,¿Qué tarjetas tengo con ustedes?
+s12,card_status,es,cuantas tarjetas tengo a mi nombre
+s12,card_status,es,¿Me puede listar mis tarjetas activas?
+s12,card_status,es,¿cuáles son todas mis tarjetas?
+s12,card_status,pt,Quais cartões eu tenho com vocês?
+s12,card_status,pt,quantos cartões estão no meu nome?
+s13,card_status,es,¿Mi tarjeta de débito está vinculada a la app?
+s13,card_status,es,la tarjeta ya quedo asociada a la aplicacion?
+s13,card_status,es,¿Tengo la tarjeta conectada a la app del banco?
+s13,card_status,es,"no me aparece la tarjeta en la app, ¿está vinculada?"
+s13,card_status,pt,Meu cartão está vinculado ao aplicativo?
+s13,card_status,pt,o cartão já aparece no app do banco?
+s14,card_status,es,¿Mi tarjeta vieja ya está cancelada?
+s14,card_status,es,la tarjeta anterior quedó cerrada o sigue activa
+s14,card_status,es,¿Confirma que la tarjeta <TARJETA_1> quedó cerrada?
+s14,card_status,es,¿la tarjeta que di de baja figura como cerrada?
+s14,card_status,pt,Meu cartão antigo já foi cancelado?
+s14,card_status,pt,o cartão anterior está encerrado?
+t01,card_transactions,es,Muéstrame mis últimos movimientos de la tarjeta
+t01,card_transactions,es,quiero ver los ultimos movimientos de mi tarjeta de credito
+t01,card_transactions,es,¿Me regala los últimos movimientos de la tarjeta?
+t01,card_transactions,es,pasame los últimos consumos de la tarjeta
+t01,card_transactions,pt,Mostre as últimas transações do meu cartão
+t01,card_transactions,pt,quero ver os últimos lançamentos do cartão
+t02,card_transactions,es,¿Qué compras hice esta semana con la tarjeta?
+t02,card_transactions,es,que he gastado esta semana con mi tarjeta
+t02,card_transactions,es,Necesito las compras de los últimos siete días
+t02,card_transactions,es,¿qué gastos tuve esta semana con la de débito?
+t02,card_transactions,pt,Quais compras eu fiz esta semana no cartão?
+t02,card_transactions,pt,o que gastei nos últimos sete dias com o cartão?
+t03,card_transactions,es,¿Ya pasó el cobro de Netflix en mi tarjeta?
+t03,card_transactions,es,me pueden checar si ya se cargó el pago de la luz a la tarjeta
+t03,card_transactions,es,¿Se aplicó la compra que hice ayer en Éxito?
+t03,card_transactions,es,¿ya impactó la compra de ayer en la tarjeta?
+t03,card_transactions,pt,A cobrança da Netflix já passou no cartão?
+t03,card_transactions,pt,a compra de ontem já apareceu no meu cartão?
+t04,card_transactions,es,No reconozco un cargo en mi tarjeta
+t04,card_transactions,es,me aparece un cargo que yo no hice
+t04,card_transactions,es,Hay un cobro en la tarjeta <TARJETA_1> que no es mío
+t04,card_transactions,es,tengo un consumo raro que no reconozco
+t04,card_transactions,pt,Não reconheço uma cobrança no meu cartão
+t04,card_transactions,pt,apareceu uma compra que eu não fiz
+t05,card_transactions,es,Me cobraron dos veces la misma compra
+t05,card_transactions,es,me hicieron doble cargo en la tarjeta
+t05,card_transactions,es,El pago del gimnasio salió repetido en la tarjeta
+t05,card_transactions,es,me debitaron dos veces lo mismo
+t05,card_transactions,pt,Fui cobrado duas vezes pela mesma compra
+t05,card_transactions,pt,a mesma compra aparece em dobro no cartão
+t06,card_transactions,es,¿Hubo un cargo de 250 dólares el 3 de marzo?
+t06,card_transactions,es,revisa si tengo un movimiento de 1.200 pesos el lunes
+t06,card_transactions,es,¿Me confirma si hay una compra de 80.000 el viernes?
+t06,card_transactions,es,¿aparece un consumo de 15 mil el martes pasado?
+t06,card_transactions,pt,Teve uma cobrança de 250 dólares no dia 3 de março?
+t06,card_transactions,pt,aparece uma compra de 80 reais na sexta?
+t07,card_transactions,es,¿Cuántos retiros hice en el cajero este mes?
+t07,card_transactions,es,muestrame los retiros de cajero de este mes
+t07,card_transactions,es,¿Qué retiros tengo con la tarjeta de débito en septiembre?
+t07,card_transactions,es,¿cuánta plata saqué del cajero este mes?
+t07,card_transactions,pt,Quantos saques eu fiz no caixa este mês?
+t07,card_transactions,pt,mostre os saques do cartão de débito deste mês
+t08,card_transactions,es,¿Tengo transacciones pendientes en la tarjeta?
+t08,card_transactions,es,que movimientos tengo pendientes de aplicar
+t08,card_transactions,es,¿Hay compras en proceso en mi tarjeta?
+t08,card_transactions,es,¿qué consumos me quedan pendientes?
+t08,card_transactions,pt,Tenho transações pendentes no cartão?
+t08,card_transactions,pt,quais compras ainda estão em processamento?
+t09,card_transactions,es,¿Ya me devolvieron la plata de la compra cancelada?
+t09,card_transactions,es,me llegó el reembolso de amazon a la tarjeta?
+t09,card_transactions,es,¿Se reversó el cobro que me hicieron por error?
+t09,card_transactions,es,¿ya me acreditaron la devolución en la tarjeta?
+t09,card_transactions,pt,O estorno da compra cancelada já caiu no cartão?
+t09,card_transactions,pt,já recebi o reembolso da amazon?
+t10,card_transactions,es,¿Cuánto gasté en restaurantes este mes con la tarjeta?
+t10,card_transactions,es,cuanto llevo gastado en el mes con la tarjeta de credito
+t10,card_transactions,es,¿En qué se me fue la plata de la tarjeta este mes?
+t10,card_transactions,es,¿cuánto gasté en transporte el mes pasado?
+t10,card_transactions,pt,Quanto gastei em restaurantes este mês no cartão?
+t10,card_transactions,pt,quanto já gastei no cartão neste mês?
+t11,card_transactions,es,Muéstrame las compras internacionales de mi tarjeta
+t11,card_transactions,es,que compras hice en el extranjero con la tarjeta
+t11,card_transactions,es,¿Tengo consumos en dólares este mes?
+t11,card_transactions,es,¿qué gastos hice afuera del país?
+t11,card_transactions,pt,Mostre as compras internacionais do meu cartão
+t11,card_transactions,pt,quais compras fiz no exterior?
+t12,card_transactions,es,¿Qué transacciones me rechazaron esta semana?
+t12,card_transactions,es,muestrame los pagos declinados de mi tarjeta
+t12,card_transactions,es,¿Qué compras no pasaron con la tarjeta?
+t12,card_transactions,es,¿cuáles pagos me rebotaron?
+t12,card_transactions,pt,Quais transações foram recusadas esta semana?
+t12,card_transactions,pt,mostre os pagamentos negados do cartão
+t13,card_transactions,es,Me aparecen compras en otro país y yo no he viajado
+t13,card_transactions,es,hay cargos desde Brasil y yo estoy en México
+t13,card_transactions,es,Tengo movimientos en el exterior que no hice
+t13,card_transactions,es,me salen consumos en España y nunca fui
+t13,card_transactions,pt,Aparecem compras em outro país e eu não viajei
+t13,card_transactions,pt,tem cobranças do exterior que eu não fiz
+t14,card_transactions,es,Dame los movimientos de la tarjeta <TARJETA_1>
+t14,card_transactions,es,que movimientos tiene la tarjeta <TARJETA_2>
+t14,card_transactions,es,¿Me muestra el historial de la tarjeta terminada en 1234?
+t14,card_transactions,es,los consumos de la <TARJETA_1> de este mes
+t14,card_transactions,pt,Mostre as transações do cartão <TARJETA_1>
+t14,card_transactions,pt,histórico do cartão final 1234
+b01,card_block,es,"Perdí mi tarjeta, bloquéala por favor"
+b01,card_block,es,"se me perdio la tarjeta, necesito bloquearla ya"
+b01,card_block,es,"Extravié la tarjeta, ¿me la bloquean?"
+b01,card_block,es,"perdí la tarjeta, bloqueala urgente"
+b01,card_block,pt,"Perdi meu cartão, bloqueie por favor"
+b01,card_block,pt,"perdi o cartão, preciso bloquear agora"
+b02,card_block,es,Me robaron la tarjeta
+b02,card_block,es,"me asaltaron y se llevaron mi tarjeta, bloquéenla"
+b02,card_block,es,Me robaron la billetera con la tarjeta de crédito
+b02,card_block,es,"me afanaron la tarjeta, bloqueala"
+b02,card_block,pt,Roubaram meu cartão
+b02,card_block,pt,"fui assaltado e levaram meu cartão, bloqueiem"
+b03,card_block,es,"Veo movimientos raros, bloqueen mi tarjeta ahora"
+b03,card_block,es,"alguien esta usando mi tarjeta, bloquéenla de inmediato"
+b03,card_block,es,"Hay compras sospechosas, necesito bloquear la tarjeta ya"
+b03,card_block,es,"me están usando la tarjeta, bloquéenmela"
+b03,card_block,pt,"Tem movimentações estranhas, bloqueiem meu cartão agora"
+b03,card_block,pt,"alguém está usando meu cartão, bloqueiem já"
+b04,card_block,es,Quiero bloquear temporalmente mi tarjeta
+b04,card_block,es,me pueden bloquear la tarjeta unos días mientras la busco
+b04,card_block,es,"Bloquee la tarjeta de manera temporal, por favor"
+b04,card_block,es,pausá la tarjeta por ahora
+b04,card_block,pt,Quero bloquear meu cartão temporariamente
+b04,card_block,pt,bloqueiem o cartão por uns dias enquanto procuro
+b05,card_block,es,Bloquea la tarjeta <TARJETA_1>
+b05,card_block,es,necesito bloquear la <TARJETA_2>
+b05,card_block,es,Por favor bloqueen la tarjeta terminada en 4060
+b05,card_block,es,bloqueame la <TARJETA_1> ya
+b05,card_block,pt,Bloqueie o cartão <TARJETA_1>
+b05,card_block,pt,preciso bloquear o cartão final 4060
+b06,card_block,es,"El cajero se tragó mi tarjeta, bloquéenla"
+b06,card_block,es,"el cajero se quedo con mi tarjeta, necesito bloquearla"
+b06,card_block,es,"La tarjeta se quedó atrapada en el cajero, bloquéela"
+b06,card_block,es,"el cajero me retuvo la tarjeta, bloqueala"
+b06,card_block,pt,"O caixa eletrônico engoliu meu cartão, bloqueiem"
+b06,card_block,pt,"o caixa reteve meu cartão, preciso bloquear"
+b07,card_block,es,"Creo que clonaron mi tarjeta, bloquéenla"
+b07,card_block,es,"me clonaron la tarjeta, bloqueala ya"
+b07,card_block,es,"Alguien tiene los datos de mi tarjeta, quiero bloquearla"
+b07,card_block,es,"me hackearon los datos de la tarjeta, bloquéenla"
+b07,card_block,pt,"Acho que clonaram meu cartão, bloqueiem"
+b07,card_block,pt,"alguém tem os dados do meu cartão, quero bloquear"
+b08,card_block,es,Bloqueen mi tarjeta de débito urgente
+b08,card_block,es,urge bloquear mi tarjeta de debito
+b08,card_block,es,Necesito que me bloqueen ya la tarjeta débito
+b08,card_block,es,"bloqueen la de débito ya, es urgente"
+b08,card_block,pt,Bloqueiem meu cartão de débito urgente
+b08,card_block,pt,preciso bloquear o cartão de débito já
+b09,card_block,es,"Me robaron el celular y ahí tenía la tarjeta, bloquéenla"
+b09,card_block,es,"perdi el telefono con la tarjeta guardada, bloqueen la tarjeta"
+b09,card_block,es,"Se me perdió el celular con la tarjeta digital, quiero bloquearla"
+b09,card_block,es,"me robaron el cel con la tarjeta cargada, bloqueala"
+b09,card_block,pt,"Roubaram meu celular com o cartão salvo, bloqueiem o cartão"
+b09,card_block,pt,"perdi o telefone com o cartão, quero bloquear"
+b10,card_block,es,"Dejé la tarjeta en un restaurante, mejor bloquéenla"
+b10,card_block,es,"olvide mi tarjeta en el taxi, bloquéenla por favor"
+b10,card_block,es,"Se me quedó la tarjeta en el hotel, necesito bloquearla"
+b10,card_block,es,"me olvidé la tarjeta en el bar, bloqueala"
+b10,card_block,pt,"Esqueci meu cartão num restaurante, bloqueiem"
+b10,card_block,pt,"deixei o cartão no táxi, preciso bloquear"
+b11,card_block,es,Desactiva mi tarjeta ya
+b11,card_block,es,apaguen mi tarjeta de credito por favor
+b11,card_block,es,Quiero dejar inhabilitada la tarjeta ahora mismo
+b11,card_block,es,deshabilitá la tarjeta ya
+b11,card_block,pt,Desativem meu cartão agora
+b11,card_block,pt,quero desabilitar o cartão agora mesmo
+b12,card_block,es,Congela mi tarjeta
+b12,card_block,es,quiero congelar la tarjeta de credito
+b12,card_block,es,¿Me congelan la tarjeta mientras reviso?
+b12,card_block,es,congelame la tarjeta porfa
+b12,card_block,pt,Congele meu cartão
+b12,card_block,pt,quero congelar o cartão de crédito
+b13,card_block,es,"Mi expareja se quedó con mi tarjeta, bloquéenla"
+b13,card_block,es,"alguien de mi casa tomó mi tarjeta sin permiso, bloqueen"
+b13,card_block,es,"Un familiar está usando mi tarjeta sin permiso, bloquéela"
+b13,card_block,es,"mi ex tiene mi tarjeta, bloqueala ya"
+b13,card_block,pt,"Meu ex ficou com meu cartão, bloqueiem"
+b13,card_block,pt,"alguém da família pegou meu cartão sem permissão, bloqueiem"
+b14,card_block,es,"No encuentro mi tarjeta, bloquéala por si acaso"
+b14,card_block,es,"no se donde deje la tarjeta, mejor bloqueenla"
+b14,card_block,es,"No hallo la tarjeta, prefiero que la bloqueen"
+b14,card_block,es,"no encuentro la tarjeta, bloqueala por las dudas"
+b14,card_block,pt,"Não acho meu cartão, bloqueiem por precaução"
+b14,card_block,pt,"não sei onde deixei o cartão, melhor bloquear"
+p01,card_policy,es,¿Cuánto cuesta la reposición de la tarjeta?
+p01,card_policy,es,cuanto cobran por sacar una tarjeta nueva si la pierdo
+p01,card_policy,es,¿La reexpedición del plástico tiene costo?
+p01,card_policy,es,¿sale plata pedir una tarjeta nueva?
+p01,card_policy,pt,Quanto custa a segunda via do cartão?
+p01,card_policy,pt,tem taxa para emitir um cartão novo?
+p02,card_policy,es,¿Qué hago si me roban la tarjeta?
+p02,card_policy,es,que debo hacer en caso de robo de tarjeta
+p02,card_policy,es,¿Cuál es el procedimiento si pierdo la tarjeta?
+p02,card_policy,es,¿qué pasos hay que seguir si te roban la tarjeta?
+p02,card_policy,pt,O que faço se roubarem meu cartão?
+p02,card_policy,pt,qual é o procedimento em caso de perda do cartão?
+p03,card_policy,es,¿Cuánto tarda en llegar una tarjeta nueva?
+p03,card_policy,es,en cuantos dias me entregan la tarjeta de reposicion
+p03,card_policy,es,¿Cuál es el tiempo de entrega del plástico nuevo?
+p03,card_policy,es,¿cuánto demora en llegar la tarjeta nueva?
+p03,card_policy,pt,Quanto tempo demora para chegar o cartão novo?
+p03,card_policy,pt,em quantos dias entregam o cartão de reposição?
+p04,card_policy,es,¿Tengo que avisar si voy a usar la tarjeta en el extranjero?
+p04,card_policy,es,cual es la politica para usar la tarjeta fuera del pais
+p04,card_policy,es,¿Hay que notificar al banco antes de viajar?
+p04,card_policy,es,¿qué recargo tiene usar la tarjeta en el exterior?
+p04,card_policy,pt,Preciso avisar o banco antes de usar o cartão no exterior?
+p04,card_policy,pt,qual a política para usar o cartão fora do país?
+p05,card_policy,es,¿Cuánto es la cuota de manejo de la tarjeta?
+p05,card_policy,es,cuanto cobran de anualidad por la tarjeta de credito
+p05,card_policy,es,¿La tarjeta de débito tiene costo mensual?
+p05,card_policy,es,¿cuánto sale el mantenimiento de la tarjeta?
+p05,card_policy,pt,Qual é a anuidade do cartão de crédito?
+p05,card_policy,pt,o cartão de débito tem tarifa mensal?
+p06,card_policy,es,¿Cómo funciona el proceso de reclamo por un cargo no reconocido?
+p06,card_policy,es,cuanto se demora el banco en devolver un cobro que no hice
+p06,card_policy,es,¿Cuál es el plazo para disputar una compra?
+p06,card_policy,es,¿cómo es el trámite para desconocer un consumo?
+p06,card_policy,pt,Como funciona a contestação de uma compra não reconhecida?
+p06,card_policy,pt,qual o prazo para contestar uma cobrança?
+p07,card_policy,es,¿Cuál es el límite diario de retiro en cajero?
+p07,card_policy,es,cuanto es lo maximo que puedo sacar del cajero al dia
+p07,card_policy,es,¿Qué tope de retiro diario tiene la tarjeta débito?
+p07,card_policy,es,¿cuánto se puede extraer por día del cajero?
+p07,card_policy,pt,Qual é o limite diário de saque no caixa eletrônico?
+p07,card_policy,pt,quanto posso sacar por dia com o cartão de débito?
+p08,card_policy,es,¿Hasta qué monto puedo pagar sin contacto?
+p08,card_policy,es,cual es el limite de los pagos contactless
+p08,card_policy,es,¿Los pagos con acercamiento tienen tope?
+p08,card_policy,es,¿hay un máximo para pagar apoyando la tarjeta?
+p08,card_policy,pt,Qual é o limite para pagamento por aproximação?
+p08,card_policy,pt,pagamento contactless tem valor máximo?
+p09,card_policy,es,¿Qué requisitos hay para aumentar el cupo de la tarjeta?
+p09,card_policy,es,como puedo hacer para que me suban el limite de credito
+p09,card_policy,es,¿Qué necesito para un aumento de línea en la tarjeta?
+p09,card_policy,es,¿cómo se pide más límite en la tarjeta?
+p09,card_policy,pt,Quais os requisitos para aumentar o limite do cartão?
+p09,card_policy,pt,como faço para aumentar o limite de crédito?
+p10,card_policy,es,¿Cuál es la tasa de interés de la tarjeta de crédito?
+p10,card_policy,es,cuanto cobran de intereses si pago tarde la tarjeta
+p10,card_policy,es,¿Qué recargo hay por pagar la tarjeta fuera de fecha?
+p10,card_policy,es,¿cuánto es la tasa por financiar en cuotas?
+p10,card_policy,pt,Qual é a taxa de juros do cartão de crédito?
+p10,card_policy,pt,quanto cobram de multa se eu atrasar a fatura?
+p11,card_policy,es,¿Es seguro dar el número de mi tarjeta por teléfono?
+p11,card_policy,es,el banco me puede pedir el codigo de seguridad por llamada?
+p11,card_policy,es,¿Ustedes piden la clave de la tarjeta por WhatsApp?
+p11,card_policy,es,¿el banco alguna vez me pide el PIN por mensaje?
+p11,card_policy,pt,É seguro passar o número do cartão por telefone?
+p11,card_policy,pt,o banco pede a senha do cartão por WhatsApp?
+p12,card_policy,es,¿Cómo puedo desbloquear mi tarjeta?
+p12,card_policy,es,que tengo que hacer para desbloquear la tarjeta despues de bloquearla
+p12,card_policy,es,¿Una tarjeta bloqueada se puede volver a activar?
+p12,card_policy,es,¿cómo se reactiva una tarjeta bloqueada?
+p12,card_policy,pt,Como faço para desbloquear meu cartão?
+p12,card_policy,pt,um cartão bloqueado pode ser reativado?
+p13,card_policy,es,¿Qué pasa si solo pago el mínimo de la tarjeta?
+p13,card_policy,es,como se calcula el pago minimo de la tarjeta
+p13,card_policy,es,¿Me cobran intereses si pago solo el mínimo?
+p13,card_policy,es,¿conviene pagar el mínimo del resumen?
+p13,card_policy,pt,O que acontece se eu pagar só o mínimo da fatura?
+p13,card_policy,pt,como é calculado o pagamento mínimo?
+p14,card_policy,es,¿La tarjeta tiene seguro de compras?
+p14,card_policy,es,que cubre el seguro de la tarjeta de credito
+p14,card_policy,es,¿Las compras con la tarjeta tienen protección contra fraude?
+p14,card_policy,es,¿qué beneficios de seguro trae la tarjeta?
+p14,card_policy,pt,O cartão tem seguro de compras?
+p14,card_policy,pt,o que cobre o seguro do cartão de crédito?
+h01,human_request,es,Quiero hablar con un asesor
+h01,human_request,es,paseme con un ejecutivo por favor
+h01,human_request,es,¿Me comunica con un asesor?
+h01,human_request,es,quiero hablar con alguien del banco
+h01,human_request,pt,Quero falar com um atendente
+h01,human_request,pt,me passa para um atendente por favor
+h02,human_request,es,"No quiero hablar con un bot, quiero una persona"
+h02,human_request,es,"ya no quiero con la maquina, quiero un humano"
+h02,human_request,es,Prefiero que me atienda una persona real
+h02,human_request,es,"basta de robot, pasame con una persona"
+h02,human_request,pt,"Não quero falar com robô, quero uma pessoa"
+h02,human_request,pt,prefiro ser atendido por um humano
+h03,human_request,es,Que me llame alguien por favor
+h03,human_request,es,pueden llamarme a mi celular <CELULAR_1>
+h03,human_request,es,Necesito que un asesor me devuelva la llamada
+h03,human_request,es,llamame vos que no tengo saldo
+h03,human_request,pt,Alguém pode me ligar por favor
+h03,human_request,pt,preciso que um atendente me retorne a ligação
+h04,human_request,es,"Quiero hablar con un supervisor, estoy muy molesto"
+h04,human_request,es,"paseme al supervisor, esto es una falta de respeto"
+h04,human_request,es,Exijo hablar con un superior
+h04,human_request,es,quiero hablar con el encargado ya
+h04,human_request,pt,"Quero falar com um supervisor, estou muito irritado"
+h04,human_request,pt,exijo falar com um superior
+h05,human_request,es,Conécteme con un agente
+h05,human_request,es,comunicame con un agente humano
+h05,human_request,es,¿Me transfiere a un agente?
+h05,human_request,es,derivame con un agente
+h05,human_request,pt,Me conecte com um agente
+h05,human_request,pt,pode me transferir para um agente?
+h06,human_request,es,"Esto no me está ayudando, quiero una persona"
+h06,human_request,es,"no me entiendes, pasame con alguien"
+h06,human_request,es,"Usted no resuelve nada, comuníqueme con un humano"
+h06,human_request,es,"no me sirve esto, quiero hablar con alguien"
+h06,human_request,pt,"Isso não está ajudando, quero uma pessoa"
+h06,human_request,pt,"você não entende, me passa para alguém"
+h07,human_request,es,Necesito hablar con alguien sobre mi caso
+h07,human_request,es,tengo un caso abierto y quiero que lo vea una persona
+h07,human_request,es,Quiero que un asesor revise mi situación
+h07,human_request,es,necesito que alguien mire mi caso particular
+h07,human_request,pt,Preciso falar com alguém sobre o meu caso
+h07,human_request,pt,quero que um atendente revise minha situação
+h08,human_request,es,¿Puede revisarlo una persona?
+h08,human_request,es,prefiero que esto lo valide un humano
+h08,human_request,es,"Quiero que lo revise alguien del banco, no el sistema"
+h08,human_request,es,¿lo puede chequear una persona?
+h08,human_request,pt,Uma pessoa pode revisar isso?
+h08,human_request,pt,prefiro que um humano valide isso
+h09,human_request,es,Transfiérame al call center
+h09,human_request,es,paseme con la linea de atencion
+h09,human_request,es,Quiero que me pasen al centro de atención telefónica
+h09,human_request,es,pasame con el call center
+h09,human_request,pt,Me transfira para a central de atendimento
+h09,human_request,pt,quero falar com a central por telefone
+h10,human_request,es,Operador
+h10,human_request,es,operadora por favor
+h10,human_request,es,asesor
+h10,human_request,es,agente humano
+h10,human_request,pt,Atendente
+h10,human_request,pt,atendente humano por favor
+h11,human_request,es,Quiero poner una queja formal con una persona
+h11,human_request,es,necesito radicar un reclamo con un asesor
+h11,human_request,es,Deseo presentar una queja y que la atienda alguien
+h11,human_request,es,quiero hacer un reclamo formal con alguien
+h11,human_request,pt,Quero registrar uma reclamação formal com uma pessoa
+h11,human_request,pt,preciso abrir uma reclamação com um atendente
+h12,human_request,es,Quiero hablar con el gerente
+h12,human_request,es,paseme con el gerente de la sucursal
+h12,human_request,es,Necesito comunicarme con la gerencia
+h12,human_request,es,quiero hablar con el gerente ya
+h12,human_request,pt,Quero falar com o gerente
+h12,human_request,pt,preciso falar com a gerência
+h13,human_request,es,Prefiero que me atiendan por teléfono
+h13,human_request,es,mejor por llamada con un asesor
+h13,human_request,es,Esto prefiero tratarlo hablando con alguien por teléfono
+h13,human_request,es,prefiero por teléfono con una persona
+h13,human_request,pt,Prefiro ser atendido por telefone
+h13,human_request,pt,melhor por ligação com um atendente
+h14,human_request,es,¿Hay algún asesor en vivo disponible?
+h14,human_request,es,tienen chat con asesor en vivo
+h14,human_request,es,Quiero un asesor en línea ahora
+h14,human_request,es,¿hay alguien atendiendo en vivo?
+h14,human_request,pt,Tem algum atendente ao vivo disponível?
+h14,human_request,pt,quero um atendente online agora
+o01,out_of_scope,es,Quiero un crédito hipotecario
+o01,out_of_scope,es,cuanto me prestan para comprar casa
+o01,out_of_scope,es,¿Qué requisitos piden para una hipoteca?
+o01,out_of_scope,es,quiero sacar un préstamo para una casa
+o01,out_of_scope,pt,Quero um financiamento imobiliário
+o01,out_of_scope,pt,quanto vocês emprestam para comprar casa?
+o02,out_of_scope,es,Transfiere 500 dólares a la cuenta <CUENTA_1>
+o02,out_of_scope,es,hazme una transferencia a mi hermano
+o02,out_of_scope,es,Quiero enviar plata a otra cuenta
+o02,out_of_scope,es,transferile 20 mil a mi viejo
+o02,out_of_scope,pt,Transfira 500 reais para a conta <CUENTA_1>
+o02,out_of_scope,pt,quero fazer um pix para minha irmã
+o03,out_of_scope,es,Quiero abrir una cuenta de ahorros
+o03,out_of_scope,es,como abro una cuenta corriente con ustedes
+o03,out_of_scope,es,¿Qué necesito para abrir una cuenta?
+o03,out_of_scope,es,quiero abrir una caja de ahorro
+o03,out_of_scope,pt,Quero abrir uma conta poupança
+o03,out_of_scope,pt,como abro uma conta corrente?
+o04,out_of_scope,es,¿En qué me conviene invertir?
+o04,out_of_scope,es,que fondo de inversion me recomiendas
+o04,out_of_scope,es,¿Es buen momento para comprar acciones?
+o04,out_of_scope,es,¿dónde pongo mis ahorros para que rindan?
+o04,out_of_scope,pt,Em que vale a pena investir?
+o04,out_of_scope,pt,qual fundo de investimento você recomenda?
+o05,out_of_scope,es,¿Cómo va a estar el clima mañana?
+o05,out_of_scope,es,va a llover hoy en bogota
+o05,out_of_scope,es,¿Qué temperatura hace en Buenos Aires?
+o05,out_of_scope,es,¿llueve mañana en CDMX?
+o05,out_of_scope,pt,Como vai estar o tempo amanhã?
+o05,out_of_scope,pt,vai chover hoje em São Paulo?
+o06,out_of_scope,es,Necesito un préstamo personal
+o06,out_of_scope,es,me pueden prestar 10 mil pesos
+o06,out_of_scope,es,¿Cuánto me aprueban de crédito de libre inversión?
+o06,out_of_scope,es,quiero pedir un préstamo
+o06,out_of_scope,pt,Preciso de um empréstimo pessoal
+o06,out_of_scope,pt,vocês me emprestam 5 mil reais?
+o07,out_of_scope,es,¿A cómo está el dólar hoy?
+o07,out_of_scope,es,quiero comprar dolares
+o07,out_of_scope,es,¿Cuál es la tasa de cambio del día?
+o07,out_of_scope,es,¿a cuánto está el blue?
+o07,out_of_scope,pt,Quanto está o dólar hoje?
+o07,out_of_scope,pt,quero comprar dólares
+o08,out_of_scope,es,Cuéntame un chiste
+o08,out_of_scope,es,dame una receta de pasta
+o08,out_of_scope,es,¿Quién ganó el partido anoche?
+o08,out_of_scope,es,recomendame una serie
+o08,out_of_scope,pt,Me conta uma piada
+o08,out_of_scope,pt,me passa uma receita de bolo
+o09,out_of_scope,es,Quiero cambiar mi dirección de correspondencia
+o09,out_of_scope,es,actualicen mi correo <EMAIL_1> en mis datos
+o09,out_of_scope,es,¿Cómo cambio mi número de teléfono registrado?
+o09,out_of_scope,es,quiero actualizar mi domicilio
+o09,out_of_scope,pt,Quero mudar meu endereço cadastrado
+o09,out_of_scope,pt,como atualizo meu telefone no cadastro?
+o10,out_of_scope,es,Quiero reclamar el seguro de mi carro
+o10,out_of_scope,es,como hago valer mi seguro de vida
+o10,out_of_scope,es,¿Cómo reporto un siniestro del seguro del hogar?
+o10,out_of_scope,es,"choqué el auto, ¿cómo uso el seguro?"
+o10,out_of_scope,pt,Quero acionar o seguro do meu carro
+o10,out_of_scope,pt,como aciono o seguro residencial?
+o11,out_of_scope,es,¿Puedo comprar bitcoin con ustedes?
+o11,out_of_scope,es,venden criptomonedas en el banco
+o11,out_of_scope,es,¿Tienen billetera de cripto?
+o11,out_of_scope,es,quiero invertir en ethereum
+o11,out_of_scope,pt,Posso comprar bitcoin com vocês?
+o11,out_of_scope,pt,o banco vende criptomoedas?
+o12,out_of_scope,es,¿A qué hora abre la sucursal del centro?
+o12,out_of_scope,es,cual es el horario de atencion de las oficinas
+o12,out_of_scope,es,¿Dónde queda la sucursal más cercana?
+o12,out_of_scope,es,¿abren los sábados las sucursales?
+o12,out_of_scope,pt,Que horas abre a agência do centro?
+o12,out_of_scope,pt,onde fica a agência mais próxima?
+o13,out_of_scope,es,Quiero pagar el recibo de la luz
+o13,out_of_scope,es,pagame el internet desde mi cuenta
+o13,out_of_scope,es,¿Puedo pagar servicios públicos por aquí?
+o13,out_of_scope,es,quiero pagar la factura del gas
+o13,out_of_scope,pt,Quero pagar a conta de luz
+o13,out_of_scope,pt,posso pagar boletos por aqui?
+o14,out_of_scope,es,Olvidé mi contraseña de la app
+o14,out_of_scope,es,no puedo entrar a la banca en linea
+o14,out_of_scope,es,¿Cómo cambio mi clave de acceso a la aplicación?
+o14,out_of_scope,es,se me bloqueó el usuario de la app
+o14,out_of_scope,pt,Esqueci minha senha do aplicativo
+o14,out_of_scope,pt,não consigo entrar no internet banking
