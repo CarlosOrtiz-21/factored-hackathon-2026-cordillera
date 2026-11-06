@@ -1,12 +1,12 @@
-# Backend image for a Hugging Face Space (Docker SDK, free CPU tier: 2 vCPU, 16 GB RAM).
-# Built from the folder that `uv run python scripts/deploy_hf.py stage` assembles.
+# Backend image (Google Cloud Run; also works on a Hugging Face Docker Space).
+# Built from the folder that `uv run python scripts/deploy_backend.py stage` assembles.
 FROM python:3.11-slim
 
 ENV PYTHONUNBUFFERED=1 \
     PIP_NO_CACHE_DIR=1 \
     HF_HOME=/home/user/.cache/huggingface
 
-# Spaces run the container as uid 1000.
+# A non-root user (uid 1000, which Hugging Face Spaces also expect).
 RUN useradd -m -u 1000 user
 WORKDIR /home/user/app
 
@@ -26,6 +26,8 @@ USER user
 RUN python -c "from sentence_transformers import SentenceTransformer as S; S('intfloat/multilingual-e5-small')" \
  && mkdir -p data models
 
+# Cloud Run sets PORT (8080); Hugging Face uses 7860.
+ENV PORT=7860
 EXPOSE 7860
 # bank.db + the intent model come from a PRIVATE dataset at startup (cardagent.bootstrap).
-CMD ["sh", "-c", "python -m cardagent.bootstrap && uvicorn --factory cardagent.api.main:create_app --host 0.0.0.0 --port 7860"]
+CMD ["sh", "-c", "python -m cardagent.bootstrap && exec uvicorn --factory cardagent.api.main:create_app --host 0.0.0.0 --port ${PORT}"]
