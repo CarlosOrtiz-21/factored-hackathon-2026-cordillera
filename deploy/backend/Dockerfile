@@ -21,10 +21,13 @@ COPY --chown=user src ./src
 COPY --chown=user corpus ./corpus
 RUN pip install --no-deps .
 
+# WORKDIR created the app folder as root: hand it to the runtime user, who writes
+# data/ (bank.db, checkpoints, vault) and models/ at startup.
+RUN mkdir -p data models && chown -R user:user /home/user/app
+
 USER user
 # Bake the e5 model into the image so a cold start doesn't download ~470 MB.
-RUN python -c "from sentence_transformers import SentenceTransformer as S; S('intfloat/multilingual-e5-small')" \
- && mkdir -p data models
+RUN python -c "from sentence_transformers import SentenceTransformer as S; S('intfloat/multilingual-e5-small')"
 
 # Cloud Run sets PORT (8080); Hugging Face uses 7860.
 ENV PORT=7860

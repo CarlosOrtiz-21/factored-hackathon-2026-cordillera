@@ -9,7 +9,11 @@ to a human advisor when a case needs one.
 > All customers and transactions come from the hackathon's **synthetic** LATAM Bank dataset,
 > and the policy corpus is **synthetic** too. No real money moves: there is no transfer tool.
 
-**Live demo:** _link added after deployment (step 7)_ · **Evaluation:** [docs/EVAL_REPORT.md](docs/EVAL_REPORT.md)
+**Live demo:** https://carlosortiz-21.github.io/factored-hackathon-2026-cordillera/ (customer chat;
+the auditor panel is at `/auditor/`) · **Evaluation:** [docs/EVAL_REPORT.md](docs/EVAL_REPORT.md)
+
+> The demo login codes are shared with the judges in the submission form, not in this repo.
+> The backend scales to zero when idle: the first message after a pause can take ~30 s.
 
 ## What makes it safe
 
