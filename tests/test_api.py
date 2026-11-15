@@ -95,9 +95,27 @@ def card_status(container, pid="P1"):
     return container.db.one("SELECT product_status FROM cards WHERE product_id = ?", (pid,))[0]
 
 
-def start_block(client, llm, headers, thread_id):
-    llm.add("triage", triage("card_block")).add("executor", PROPOSE).add("critic", critic())
+def start_block(client, llm, headers, thread_id, risk=0.1):
+    """A block request. At risk <= 0.7 it waits for the customer's click only; above it,
+    for the click and then a supervisor."""
+    llm.add("triage", triage("card_block")).add("executor", PROPOSE).add(
+        "critic", critic(risk=risk)
+    )
     return chat(client, headers, f"perdí mi tarjeta {CARD_P1}, bloquéala", thread_id)
+
+
+def confirm(client, headers, thread_id, events, decision="confirmed"):
+    """The customer's click: the control's id comes from the confirm_required event."""
+    control = events[-1][1]
+    return client.post(
+        "/api/confirm",
+        headers=headers,
+        json={
+            "thread_id": thread_id,
+            "confirmation_id": control["confirmation_id"],
+            "decision": decision,
+        },
+    )
 
 
 # --- auth ---------------------------------------------------------------------------------
@@ -156,13 +174,81 @@ def test_read_flow_streams_progress_then_reviewed_text(env):
     assert final["suggestions"] and final["cost_usd"] >= 0
 
 
-def test_block_flow_pending_then_auditor_approves_and_customer_is_notified_live(env):
+def test_block_flow_waits_for_the_customers_click_then_executes(env):
     client, llm, _, container = env
     headers, thread_id, _ = login(client)
     events = start_block(client, llm, headers, thread_id)
     kinds = [k for k, _ in events]
-    assert kinds[-1] == "approval_required" and "interim" in kinds
+    assert kinds[-1] == "confirm_required" and "interim" in kinds
+    control = events[-1][1]
+    assert control["card"] == "•••• 4060" and CARD_P1 not in json.dumps(control)
+    assert control["requires_supervisor"] is False and control["reason_label"] == "pérdida"
     assert card_status(container) == "Active"  # nothing executed yet
+
+    body = confirm(client, headers, thread_id, events).json()
+    assert body["decision"] == "confirmed" and body["verified"] is True
+    assert body["awaiting_supervisor"] is False
+    assert card_status(container) == "Blocked"
+    with client.stream("GET", f"/api/chat/{thread_id}/events", headers=headers) as r:
+        replay = parse_sse(r)
+    assert replay[-1][0] == "final"
+    assert replay[-1][1]["text"].startswith("Listo, tu tarjeta •••• 4060 ya está bloqueada")
+
+
+def test_typed_yes_never_confirms(env):
+    client, llm, _, container = env
+    headers, thread_id, _ = login(client)
+    start_block(client, llm, headers, thread_id)
+    r = client.post(
+        "/api/chat/stream", headers=headers, json={"message": "sí", "thread_id": thread_id}
+    )
+    assert r.status_code == 409
+    assert card_status(container) == "Active"
+
+
+def test_cancelled_confirmation_is_reported_to_the_customer(env):
+    client, llm, _, container = env
+    headers, thread_id, _ = login(client)
+    events = start_block(client, llm, headers, thread_id)
+    body = confirm(client, headers, thread_id, events, "cancelled").json()
+    assert body["decision"] == "cancelled" and card_status(container) == "Active"
+    assert body["customer_message"].startswith("No bloqueé tu tarjeta •••• 4060")
+    assert confirm(client, headers, thread_id, events).status_code == 404  # decided once
+
+
+def test_another_customer_cannot_decide_my_confirmation(env):
+    client, llm, _, container = env
+    headers, thread_id, _ = login(client)
+    events = start_block(client, llm, headers, thread_id)
+    headers_c2, _, _ = login(client, "C2")
+    assert confirm(client, headers_c2, thread_id, events).status_code == 404
+    assert card_status(container) == "Active"
+    assert container.runner.pending_control(thread_id) == "confirm"  # still mine to decide
+
+
+def test_lapsed_confirmation_is_closed_by_the_sweep(env):
+    client, llm, clock, container = env
+    headers, thread_id, _ = login(client)
+    events = start_block(client, llm, headers, thread_id)
+    clock.advance(minutes=11)  # confirmation TTL is 10 minutes
+    client.get("/api/approvals/pending", headers=auditor(client))  # runs the sweep
+    assert container.runner.state(thread_id)["customer_decision"]["decision"] == "expired"
+    assert card_status(container) == "Active"
+    assert confirm(client, headers, thread_id, events).status_code == 404
+    with client.stream("GET", f"/api/chat/{thread_id}/events", headers=headers) as r:
+        replay = parse_sse(r)
+    assert "no bloqueé tu tarjeta •••• 4060" in replay[-1][1]["text"]
+
+
+def test_risky_block_needs_the_supervisor_and_the_customer_is_notified_live(env):
+    client, llm, _, container = env
+    headers, thread_id, _ = login(client)
+    events = start_block(client, llm, headers, thread_id, risk=0.9)
+    assert events[-1][0] == "confirm_required"
+    assert events[-1][1]["requires_supervisor"] is True
+    body = confirm(client, headers, thread_id, events).json()
+    assert body["decision"] == "confirmed" and body["awaiting_supervisor"] is True
+    assert card_status(container) == "Active"  # confirmed by the customer, not yet approved
 
     # the customer waits on the events stream while the auditor decides
     received: list = []
@@ -193,7 +279,8 @@ def test_block_flow_pending_then_auditor_approves_and_customer_is_notified_live(
 def test_customer_cannot_approve_even_their_own_request(env):
     client, llm, _, container = env
     headers, thread_id, _ = login(client)
-    start_block(client, llm, headers, thread_id)
+    events = start_block(client, llm, headers, thread_id, risk=0.9)
+    confirm(client, headers, thread_id, events)
     r = client.post(
         "/api/approve", headers=headers, json={"thread_id": thread_id, "decision": "approved"}
     )
@@ -204,7 +291,8 @@ def test_customer_cannot_approve_even_their_own_request(env):
 def test_rejection_leaves_card_active_and_is_replayed_to_customer(env):
     client, llm, _, container = env
     headers, thread_id, _ = login(client)
-    start_block(client, llm, headers, thread_id)
+    events = start_block(client, llm, headers, thread_id, risk=0.9)
+    confirm(client, headers, thread_id, events)
     client.post(
         "/api/approve",
         headers=auditor(client),
@@ -219,7 +307,8 @@ def test_rejection_leaves_card_active_and_is_replayed_to_customer(env):
 def test_expired_approval_is_closed_by_the_sweep(env):
     client, llm, clock, container = env
     headers, thread_id, _ = login(client)
-    start_block(client, llm, headers, thread_id)
+    events = start_block(client, llm, headers, thread_id, risk=0.9)
+    confirm(client, headers, thread_id, events)
     clock.advance(minutes=11)
     assert client.get("/api/approvals/pending", headers=auditor(client)).json() == []
     assert container.runner.state(thread_id)["human_decision"]["decision"] == "expired"
@@ -229,7 +318,8 @@ def test_expired_approval_is_closed_by_the_sweep(env):
 def test_new_message_while_awaiting_approval_is_refused(env):
     client, llm, _, _ = env
     headers, thread_id, _ = login(client)
-    start_block(client, llm, headers, thread_id)
+    events = start_block(client, llm, headers, thread_id, risk=0.9)
+    confirm(client, headers, thread_id, events)
     r = client.post(
         "/api/chat/stream", headers=headers, json={"message": "¿y?", "thread_id": thread_id}
     )

@@ -4,7 +4,8 @@
 1. rejects names that aren't registered (an LLM can ask for anything);
 2. validates arguments against the tool's Pydantic model (extra fields rejected);
 3. re-checks that the session hasn't expired mid-conversation;
-4. requires an ApprovalGrant for write tools;
+4. requires a WriteAuthorization for write tools (the customer's confirmation, plus a
+   supervisor's grant when that confirmation is marked risky);
 5. optionally injects faults, for failure testing in the evaluation.
 
 `read_only()` gives the executor agent a registry where write tools don't exist at all.
@@ -18,8 +19,8 @@ from pydantic import BaseModel, ValidationError
 
 from cardagent.bank import tools
 from cardagent.bank.errors import (
-    ApprovalRequiredError,
     BankError,
+    ConfirmationRequiredError,
     SessionExpiredError,
     ToolArgsError,
     UnregisteredToolError,
@@ -69,7 +70,7 @@ DEFAULT_TOOLS = (
     ToolSpec(
         "block_card",
         "write",
-        "Block a card. Requires a human approval bound to the idempotency key.",
+        "Block a card. Requires the customer's confirmation bound to the idempotency key.",
         tools.BlockCardArgs,
         tools.block_card,
     ),
@@ -106,7 +107,7 @@ class ToolRegistry:
         name: str,
         args: dict,
         ctx: tools.ToolContext,
-        approval: tools.ApprovalGrant | None = None,
+        authorization: tools.WriteAuthorization | None = None,
     ) -> dict:
         spec = self.specs.get(name)
         if spec is None:
@@ -118,12 +119,12 @@ class ToolRegistry:
             raise ToolArgsError(f"invalid arguments for {name}: {fields}") from None
         if ctx.clock() >= ctx.session.expires_at:
             raise SessionExpiredError("session expired")
-        if spec.kind == "write" and approval is None:
-            raise ApprovalRequiredError(f"'{name}' requires a human approval")
+        if spec.kind == "write" and authorization is None:
+            raise ConfirmationRequiredError(f"'{name}' requires the customer's confirmation")
         if self.fault_injector is not None:
             self.fault_injector(name)
         if spec.kind == "write":
-            return spec.fn(ctx, parsed, approval)
+            return spec.fn(ctx, parsed, authorization)
         return spec.fn(ctx, parsed)
 
     def invoke(
@@ -131,7 +132,7 @@ class ToolRegistry:
         name: str,
         args: dict,
         ctx: tools.ToolContext,
-        approval: tools.ApprovalGrant | None = None,
+        authorization: tools.WriteAuthorization | None = None,
     ) -> ToolResult:
         """Like call(), but returns a structured error instead of raising.
 
@@ -139,6 +140,6 @@ class ToolRegistry:
         customer, escalate), never a stack trace.
         """
         try:
-            return ToolResult(name, True, data=self.call(name, args, ctx, approval))
+            return ToolResult(name, True, data=self.call(name, args, ctx, authorization))
         except BankError as e:
             return ToolResult(name, False, error_code=e.code, error=str(e))

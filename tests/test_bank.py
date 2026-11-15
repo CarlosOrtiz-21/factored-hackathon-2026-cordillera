@@ -8,11 +8,14 @@ from datetime import UTC, date, datetime, timedelta
 
 import pytest
 
+from cardagent.bank.confirmations import ConfirmationService
 from cardagent.bank.db import BankDB
 from cardagent.bank.errors import (
     ActionNotAllowedError,
     ApprovalInvalidError,
     ApprovalRequiredError,
+    ConfirmationInvalidError,
+    ConfirmationRequiredError,
     IdempotencyConflictError,
     InvalidSessionError,
     NotFoundError,
@@ -23,7 +26,7 @@ from cardagent.bank.errors import (
 )
 from cardagent.bank.registry import ToolRegistry
 from cardagent.bank.sessions import SessionService
-from cardagent.bank.tools import ApprovalGrant, ToolContext
+from cardagent.bank.tools import ApprovalGrant, ToolContext, WriteAuthorization
 from cardagent.pii.vault import InMemoryTokenVault
 from cardagent.schemas.enums import Decision
 from pipelines.etl.export import DDL
@@ -254,11 +257,159 @@ def status_of(db, pid):
     return db.one("SELECT product_status FROM cards WHERE product_id = ?", (pid,))[0]
 
 
-def test_block_requires_approval(db, sessions, vault, clock):
+def authorize(
+    db,
+    clock,
+    vault,
+    key="key-00000001",
+    pid="P1",
+    reason="lost",
+    *,
+    supervisor=False,
+    decision="confirmed",
+    customer="C1",
+    thread="t1",
+    approval=None,
+) -> WriteAuthorization:
+    """What the API does when the customer clicks: open the record, then decide it."""
+    service = ConfirmationService(db, clock)
+    cid = f"conf-{key}"
+    service.open(
+        confirmation_id=cid,
+        thread_id=thread,
+        customer_id=customer,
+        idempotency_key=key,
+        card_token=card_token(vault, thread, pid),
+        reason=reason,
+        requires_supervisor=supervisor,
+        ttl_minutes=10,
+    )
+    if decision:
+        service.decide(cid, decision, customer_id=customer)
+    return WriteAuthorization(confirmation_id=cid, approval=approval)
+
+
+def test_block_requires_the_customers_confirmation(db, sessions, vault, clock):
     ctx = make_ctx(db, sessions, vault, clock)
-    with pytest.raises(ApprovalRequiredError):
+    with pytest.raises(ConfirmationRequiredError):
         ToolRegistry().call("block_card", block_args(vault), ctx)
     assert status_of(db, "P1") == "Active"
+
+
+@pytest.mark.parametrize(
+    ("kwargs", "problem"),
+    [
+        ({"decision": None}, "pending, not confirmed"),  # the button was never pressed
+        ({"decision": "cancelled"}, "cancelled"),
+        ({"pid": "P2"}, "different card"),
+        ({"reason": "stolen"}, "different reason"),
+        ({"key": "key-OTHER"}, "different action"),
+    ],
+)
+def test_confirmations_that_do_not_match_the_write_are_refused(
+    db, sessions, vault, clock, kwargs, problem
+):
+    ctx = make_ctx(db, sessions, vault, clock)
+    auth = authorize(db, clock, vault, **kwargs)
+    with pytest.raises(ConfirmationInvalidError, match=problem):
+        ToolRegistry().call("block_card", block_args(vault), ctx, authorization=auth)
+    assert status_of(db, "P1") == "Active"
+
+
+def test_a_model_cannot_decide_a_confirmation(db, sessions, vault, clock):
+    """Only the API decides, with the session's customer id. A decision 'by' anyone else
+    (the model, a tool, another customer) never authorizes the write."""
+    ctx = make_ctx(db, sessions, vault, clock)
+    auth = authorize(db, clock, vault, decision=None)
+    db.query(
+        "UPDATE confirmations SET status = 'confirmed', decided_by = 'model' "
+        "WHERE confirmation_id = ?",
+        (auth.confirmation_id,),
+    )
+    with pytest.raises(ConfirmationInvalidError, match="not decided by the card holder"):
+        ToolRegistry().call("block_card", block_args(vault), ctx, authorization=auth)
+
+
+def test_another_customers_confirmation_is_not_found(db, sessions, vault, clock):
+    service = ConfirmationService(db, clock)
+    auth = authorize(db, clock, vault, decision=None)
+    with pytest.raises(NotFoundError):  # C2 can't even see that C1's record exists
+        service.decide(auth.confirmation_id, "confirmed", customer_id="C2")
+    assert service.get(auth.confirmation_id).status == "pending"
+    ctx_c2 = make_ctx(db, sessions, vault, clock, customer="C2", thread="t2")
+    with pytest.raises(ConfirmationInvalidError, match="no confirmation"):
+        ToolRegistry().call(
+            "block_card",
+            {
+                "card_token": card_token(vault, "t2", "P4"),
+                "reason": "lost",
+                "idempotency_key": "key-00000001",
+            },
+            ctx_c2,
+            authorization=auth,
+        )
+
+
+def test_expired_confirmation_is_refused(db, sessions, vault, clock):
+    ctx = make_ctx(db, sessions, vault, clock)
+    auth = authorize(db, clock, vault)
+    clock.advance(minutes=11)  # confirmation TTL is 10 minutes; session still valid (15)
+    with pytest.raises(ConfirmationInvalidError, match="expired"):
+        ToolRegistry().call("block_card", block_args(vault), ctx, authorization=auth)
+
+
+def test_deciding_a_lapsed_confirmation_marks_it_expired(db, sessions, vault, clock):
+    service = ConfirmationService(db, clock)
+    auth = authorize(db, clock, vault, decision=None)
+    clock.advance(minutes=11)
+    with pytest.raises(ConfirmationInvalidError, match="expired"):
+        service.decide(auth.confirmation_id, "confirmed", customer_id="C1")
+    assert service.get(auth.confirmation_id).status == "expired"
+    assert service.pending("t1") is None
+
+
+def test_confirmed_block_changes_state_and_is_audited(db, sessions, vault, clock):
+    ctx = make_ctx(db, sessions, vault, clock)
+    auth = authorize(db, clock, vault)
+    out = ToolRegistry().call("block_card", block_args(vault), ctx, authorization=auth)
+    assert (out["status_before"], out["status_after"]) == ("Active", "Blocked")
+    # verification = an independent re-read through a read tool
+    verified = ToolRegistry().call(
+        "get_card_status", {"card_token": card_token(vault, "t1", "P1")}, ctx
+    )
+    assert verified["status"] == "Blocked"
+    action = db.one("SELECT * FROM card_actions")
+    assert (action["approver_id"], action["requester_id"], action["reason"]) == (
+        "customer:C1",
+        "C1",
+        "lost",
+    )
+    assert ConfirmationService(db, clock).get(auth.confirmation_id).consumed_at is not None
+
+
+def test_a_confirmation_authorizes_one_write_once(db, sessions, vault, clock):
+    ctx = make_ctx(db, sessions, vault, clock)
+    auth = authorize(db, clock, vault)
+    ToolRegistry().call("block_card", block_args(vault), ctx, authorization=auth)
+    db.query("DELETE FROM card_actions")  # pretend the idempotency row vanished
+    db.query("UPDATE cards SET product_status = 'Active' WHERE product_id = 'P1'")
+    with pytest.raises(ConfirmationInvalidError, match="already used"):
+        ToolRegistry().call("block_card", block_args(vault), ctx, authorization=auth)
+    assert status_of(db, "P1") == "Active"
+
+
+def test_risky_block_needs_the_supervisor_too(db, sessions, vault, clock):
+    ctx = make_ctx(db, sessions, vault, clock)
+    auth = authorize(db, clock, vault, supervisor=True)
+    with pytest.raises(ApprovalRequiredError):
+        ToolRegistry().call("block_card", block_args(vault), ctx, authorization=auth)
+    assert status_of(db, "P1") == "Active"
+    both = WriteAuthorization(
+        confirmation_id=auth.confirmation_id, approval=grant(clock, "key-00000001")
+    )
+    out = ToolRegistry().call("block_card", block_args(vault), ctx, authorization=both)
+    assert out["status_after"] == "Blocked"
+    assert db.one("SELECT approver_id FROM card_actions")[0] == "auditor-7"
 
 
 @pytest.mark.parametrize(
@@ -271,47 +422,30 @@ def test_block_requires_approval(db, sessions, vault, clock):
         ({"requester_id": "C2"}, "another customer"),
     ],
 )
-def test_invalid_approvals_are_refused(db, sessions, vault, clock, overrides, problem):
+def test_invalid_supervisor_approvals_are_refused(db, sessions, vault, clock, overrides, problem):
     ctx = make_ctx(db, sessions, vault, clock)
+    auth = authorize(
+        db, clock, vault, supervisor=True, approval=grant(clock, "key-00000001", **overrides)
+    )
     with pytest.raises(ApprovalInvalidError, match=problem):
-        ToolRegistry().call(
-            "block_card", block_args(vault), ctx, approval=grant(clock, "key-00000001", **overrides)
-        )
+        ToolRegistry().call("block_card", block_args(vault), ctx, authorization=auth)
     assert status_of(db, "P1") == "Active"
 
 
-def test_expired_approval_is_refused(db, sessions, vault, clock):
+def test_expired_supervisor_approval_is_refused(db, sessions, vault, clock):
     ctx = make_ctx(db, sessions, vault, clock)
-    approval = grant(clock, "key-00000001")
-    clock.advance(minutes=11)  # approval TTL is 10 minutes; session still valid (15)
+    approval = grant(clock, "key-00000001", expires_at=clock() + timedelta(minutes=1))
+    auth = authorize(db, clock, vault, supervisor=True, approval=approval)
+    clock.advance(minutes=2)  # the grant lapsed; the confirmation (10 min) hasn't
     with pytest.raises(ApprovalInvalidError, match="expired"):
-        ToolRegistry().call("block_card", block_args(vault), ctx, approval=approval)
-
-
-def test_approved_block_changes_state_and_is_audited(db, sessions, vault, clock):
-    ctx = make_ctx(db, sessions, vault, clock)
-    out = ToolRegistry().call(
-        "block_card", block_args(vault), ctx, approval=grant(clock, "key-00000001")
-    )
-    assert (out["status_before"], out["status_after"]) == ("Active", "Blocked")
-    # verification = an independent re-read through a read tool
-    verified = ToolRegistry().call(
-        "get_card_status", {"card_token": card_token(vault, "t1", "P1")}, ctx
-    )
-    assert verified["status"] == "Blocked"
-    action = db.one("SELECT * FROM card_actions")
-    assert (action["approver_id"], action["requester_id"], action["reason"]) == (
-        "auditor-7",
-        "C1",
-        "lost",
-    )
+        ToolRegistry().call("block_card", block_args(vault), ctx, authorization=auth)
 
 
 def test_retry_with_same_key_does_not_act_twice(db, sessions, vault, clock):
     ctx = make_ctx(db, sessions, vault, clock)
-    registry, approval = ToolRegistry(), grant(clock, "key-00000001")
-    first = registry.call("block_card", block_args(vault), ctx, approval=approval)
-    second = registry.call("block_card", block_args(vault), ctx, approval=approval)
+    registry, auth = ToolRegistry(), authorize(db, clock, vault)
+    first = registry.call("block_card", block_args(vault), ctx, authorization=auth)
+    second = registry.call("block_card", block_args(vault), ctx, authorization=auth)
     assert second["replayed"] and second["action_id"] == first["action_id"]
     assert db.one("SELECT count(*) FROM card_actions")[0] == 1
 
@@ -319,24 +453,26 @@ def test_retry_with_same_key_does_not_act_twice(db, sessions, vault, clock):
 def test_same_key_for_different_card_conflicts(db, sessions, vault, clock):
     ctx = make_ctx(db, sessions, vault, clock)
     registry = ToolRegistry()
-    registry.call("block_card", block_args(vault), ctx, approval=grant(clock, "key-00000001"))
+    registry.call("block_card", block_args(vault), ctx, authorization=authorize(db, clock, vault))
     db.query("UPDATE cards SET product_status = 'Active' WHERE product_id = 'P2'")
     with pytest.raises(IdempotencyConflictError):
         registry.call(
-            "block_card", block_args(vault, pid="P2"), ctx, approval=grant(clock, "key-00000001")
+            "block_card",
+            block_args(vault, pid="P2"),
+            ctx,
+            authorization=authorize(db, clock, vault, pid="P2", key="key-00000001-b"),
         )
 
 
 def test_already_blocked_card_is_a_verified_no_op(db, sessions, vault, clock):
     ctx = make_ctx(db, sessions, vault, clock)
+    auth = authorize(db, clock, vault, pid="P2", key="key-00000002")
     out = ToolRegistry().call(
-        "block_card",
-        block_args(vault, pid="P2", key="key-00000002"),
-        ctx,
-        approval=grant(clock, "key-00000002"),
+        "block_card", block_args(vault, pid="P2", key="key-00000002"), ctx, authorization=auth
     )
     assert out["already_blocked"] and out["status_after"] == "Blocked"
     assert db.one("SELECT count(*) FROM card_actions")[0] == 0
+    assert ConfirmationService(db, clock).get(auth.confirmation_id).consumed_at is not None
 
 
 def test_closed_card_cannot_be_blocked(db, sessions, vault, clock):
@@ -346,17 +482,17 @@ def test_closed_card_cannot_be_blocked(db, sessions, vault, clock):
             "block_card",
             block_args(vault, pid="P3", key="key-00000003"),
             ctx,
-            approval=grant(clock, "key-00000003"),
+            authorization=authorize(db, clock, vault, pid="P3", key="key-00000003"),
         )
 
 
-def test_cannot_block_another_customers_card_even_with_approval(db, sessions, vault, clock):
+def test_cannot_block_another_customers_card_even_when_confirmed(db, sessions, vault, clock):
     ctx = make_ctx(db, sessions, vault, clock, customer="C1")
     with pytest.raises(NotFoundError):
         ToolRegistry().call(
             "block_card",
             block_args(vault, pid="P4", key="key-00000004"),
             ctx,
-            approval=grant(clock, "key-00000004"),
+            authorization=authorize(db, clock, vault, pid="P4", key="key-00000004"),
         )
     assert status_of(db, "P4") == "Active"

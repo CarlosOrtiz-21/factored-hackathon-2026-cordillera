@@ -2,8 +2,10 @@
 
 Events (SSE `event:` names):
     node_start         a node began; localized progress line ("Consultando tus tarjetas…")
-    interim            "block requested, pending supervisor" (never claims it's done)
-    approval_required  the turn is paused for a human; the customer waits on /events
+    interim            what is about to happen, without claiming it's done
+    confirm_required   the turn is paused for the customer's own click (A1); the chat
+                       shows the control and then waits on /events
+    approval_required  a risky block, confirmed by the customer, now waits for a supervisor
     token              the FINAL, critic-reviewed text in small pieces (never raw LLM output)
     final              text + suggestions + route + case id + turn latency/cost
     error              generic, localized; details only in server logs
@@ -21,6 +23,7 @@ from langgraph.types import Command
 
 from cardagent.agents.templates import progress
 from cardagent.api.events import EventBus
+from cardagent.bank.confirmations import ConfirmationService
 from cardagent.bank.db import BankDB
 from cardagent.bank.sessions import StaffSession
 from cardagent.llm.client import usage_cost
@@ -52,9 +55,18 @@ class ApprovalOutcome:
     verified: bool
 
 
+@dataclass
+class ConfirmationOutcome:
+    decision: str  # confirmed | cancelled | expired, as the graph recorded it
+    awaiting_supervisor: bool  # confirmed, but risky: a supervisor still has to approve
+    final_response: str
+    verified: bool
+
+
 class TurnRunner:
     def __init__(self, graph, db: BankDB, bus: EventBus, clock):
         self.graph, self.db, self.bus, self.clock = graph, db, bus, clock
+        self.confirmations = ConfirmationService(db, clock)
         self._thread_locks: dict[str, threading.Lock] = {}
         self._locks_guard = threading.Lock()
 
@@ -74,6 +86,15 @@ class TurnRunner:
             "status = 'pending' ORDER BY requested_at DESC LIMIT 1",
             (thread_id,),
         )
+
+    def pending_control(self, thread_id: str) -> str | None:
+        """What the conversation is waiting on: 'confirm' (the customer's click),
+        'approval' (a supervisor), or None."""
+        if self.confirmations.pending(thread_id) is not None:
+            return "confirm"
+        if self.pending_request(thread_id) is not None:
+            return "approval"
+        return None
 
     def state(self, thread_id: str) -> dict[str, Any]:
         return self.graph.get_state(self.config(thread_id)).values
@@ -147,6 +168,24 @@ class TurnRunner:
 
     def _after_run(self, thread_id: str, started: float, usage_before: int) -> None:
         snapshot = self.graph.get_state(self.config(thread_id))
+        if snapshot.next == ("confirm",):
+            control = snapshot.tasks[0].interrupts[0].value  # masked by the node already
+            self.bus.publish(
+                thread_id,
+                "confirm_required",
+                {
+                    k: control[k]
+                    for k in (
+                        "confirmation_id",
+                        "card",
+                        "reason",
+                        "reason_label",
+                        "requires_supervisor",
+                        "expires_at",
+                    )
+                },
+            )
+            return
         if snapshot.next == ("human_approval",):
             request = snapshot.tasks[0].interrupts[0].value
             self._record_pending(thread_id, snapshot.values["customer_id"], request)
@@ -189,6 +228,29 @@ class TurnRunner:
                 ),
             )
 
+    # --- the customer's confirmation (A1) -------------------------------------------
+
+    def decide_confirmation(
+        self, thread_id: str, confirmation_id: str, decision: str, customer_id: str
+    ) -> ConfirmationOutcome | None:
+        """The click. `customer_id` comes from the session; the service refuses anyone
+        else, and the graph re-reads the record rather than trusting this call."""
+        pending = self.confirmations.pending(thread_id)
+        if pending is None or pending.confirmation_id != confirmation_id:
+            return None
+        self.confirmations.decide(confirmation_id, decision, customer_id=customer_id)
+        self.run(
+            thread_id,
+            Command(resume={"confirmation_id": confirmation_id, "decision": decision}),
+        )
+        values = self.state(thread_id)
+        return ConfirmationOutcome(
+            decision=(values.get("customer_decision") or {}).get("decision", "cancelled"),
+            awaiting_supervisor=self.pending_request(thread_id) is not None,
+            final_response=values.get("final_response", ""),
+            verified=bool((values.get("action_result") or {}).get("verified")),
+        )
+
     # --- approvals ------------------------------------------------------------------
 
     def decide(
@@ -230,13 +292,20 @@ class TurnRunner:
         )
 
     def expire_stale(self) -> int:
-        """Close approvals past their deadline so the customer is told (cancelled)."""
+        """Close confirmations and approvals past their deadline, so the customer is told."""
         now = self.clock()
+        expired = 0
+        for c in self.confirmations.expire_stale():
+            if self.graph.get_state(self.config(c.thread_id)).next == ("confirm",):
+                self.run(
+                    c.thread_id,
+                    Command(resume={"confirmation_id": c.confirmation_id, "decision": "expired"}),
+                )
+                expired += 1
         rows = self.db.query(
             "SELECT thread_id, expires_at FROM approval_requests WHERE status = 'pending'"
         )
         system = StaffSession("system-expiry", "system", now)
-        expired = 0
         for row in rows:
             if now >= datetime.fromisoformat(row["expires_at"]):
                 self.decide(row["thread_id"], "rejected", system)

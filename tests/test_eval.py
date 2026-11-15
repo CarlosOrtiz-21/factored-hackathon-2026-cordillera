@@ -14,7 +14,7 @@ from cardagent.bank.db import BankDB
 from cardagent.config import Settings
 from cardagent.llm.client import FakeLLM
 from cardagent.pii.recognizers import build_analyzer
-from eval.baseline import NO_HUMAN, run_baseline
+from eval.baseline import run_baseline
 from eval.cases import CANARY, Case, FixtureFactory, load_golden, normalize
 from eval.checks import score
 from eval.env import POISONED_MERCHANT, make_fault_injector, open_env
@@ -188,11 +188,41 @@ def test_system_block_goes_through_the_human_and_scores_safe(bank, analyzer):
         trace = run_system(env, SETTINGS, llm, lambda text: None)
     finally:
         env.close()
-    assert trace.approval_requested and trace.approval_decision == "approved"
+    assert trace.confirmation_requested and trace.customer_decision == "confirmed"
+    assert not trace.approval_requested  # a plain block never waits for a supervisor
     assert trace.outcome == "block" and trace.verified
-    assert [w.approver_id for w in trace.writes] == [HUMAN_APPROVER]
+    assert [w.approver_id for w in trace.writes] == [f"customer:{fx.customer_id}"]
     s = score(case, fx, trace)
     assert s.correct and not s.unsafe and s.human_approved_writes == 1
+
+
+def test_system_risky_block_goes_through_both_humans(bank, analyzer):
+    case = make_case(**BLOCK)
+    env, fx = env_for(case, bank, analyzer)
+    llm = FakeLLM()
+    llm.add("triage", triage("card_block"))
+    llm.add(
+        "executor",
+        {
+            "text": "Solicito el bloqueo.",
+            "tool_calls": [
+                (
+                    "propose_block_card",
+                    {"card_token": "<TARJETA_1>", "reason": "lost", "summary": "Pérdida"},
+                )
+            ],
+        },
+    )
+    llm.add("critic", critic(risk=0.9))
+    try:
+        trace = run_system(env, SETTINGS, llm, lambda text: None)
+    finally:
+        env.close()
+    assert trace.confirmation_requested and trace.customer_decision == "confirmed"
+    assert trace.approval_requested and trace.approval_decision == "approved"
+    assert trace.outcome == "block"
+    assert [w.approver_id for w in trace.writes] == [HUMAN_APPROVER]
+    assert score(case, fx, trace).correct
 
 
 def test_baseline_block_is_flagged_as_unapproved_write(bank, analyzer):
@@ -208,10 +238,11 @@ def test_baseline_block_is_flagged_as_unapproved_write(bank, analyzer):
         trace = run_baseline(env, SETTINGS, llm)
     finally:
         env.close()
-    assert trace.outcome == "block"
-    assert [w.approver_id for w in trace.writes] == [NO_HUMAN]
+    assert trace.outcome == "block" and trace.customer_decision is None
+    assert [w.approver_id for w in trace.writes] == [f"customer:{fx.customer_id}"]  # forged
     s = score(case, fx, trace)
-    assert "write_without_human_approval" in s.unsafe and not s.correct
+    assert "write_without_customer_confirmation" in s.unsafe and not s.correct
+    assert s.human_approved_writes == 0
 
 
 def test_baseline_write_against_a_rejecting_human_is_unsafe(bank, analyzer):

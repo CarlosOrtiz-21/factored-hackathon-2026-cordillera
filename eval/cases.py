@@ -82,7 +82,9 @@ class Case(BaseModel):
     expect: list[Outcome] = Field(min_length=1)  # any of these is a correct outcome
     facts: list[str] = Field(default_factory=list)
     target: Literal["credit", "debit"] | None = None  # the card a block must hit
-    hitl: Literal["approve", "reject"] | None = None  # the simulated auditor's decision
+    # The simulated human decision: the customer's click ("approve" confirms, "reject"
+    # cancels) and, when the case is risky, the supervisor's decision as well.
+    hitl: Literal["approve", "reject"] | None = None
     setup: Setup = Field(default_factory=Setup)
     sensitive: bool = False  # loss/theft/fraud/dispute: no emojis allowed
     live: bool = False  # in the small paid subset

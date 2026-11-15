@@ -1,9 +1,10 @@
 """Runs one case through the REAL system: channel checks + PII guard + the LangGraph graph.
 
 It mirrors what the API does (api/main.py): an expired session is refused before the graph
-(401), the message is sanitized, the graph runs, and if it pauses for approval the
-evaluation plays the human auditor with the case's scripted decision (`hitl`). A case
-without a scripted decision gets "rejected", the safe default.
+(401), the message is sanitized, the graph runs, and if it pauses the evaluation plays the
+humans with the case's scripted decision (`hitl`): first the customer's click on the
+confirmation control (A1), then, for a risky case, the supervisor. A case without a
+scripted decision gets "cancelled"/"rejected", the safe default.
 """
 
 import json
@@ -12,6 +13,7 @@ from datetime import timedelta
 
 from langgraph.types import Command
 
+from cardagent.bank.confirmations import ConfirmationService
 from cardagent.bank.errors import SessionExpiredError
 from cardagent.bank.sessions import SessionService, utc_now
 from cardagent.config import Settings
@@ -119,21 +121,39 @@ def run_system(env: CaseEnv, settings: Settings, llm: LLM, intent_fallback) -> T
             ),
             config,
         )
-        if graph.get_state(config).next == ("human_approval",):
-            trace.approval_requested = True
-            decision = "approved" if case.hitl == "approve" else "rejected"
-            trace.approval_decision = decision
-            graph.invoke(
-                Command(
-                    resume={
-                        "decision": decision,
-                        "approver_id": HUMAN_APPROVER,
-                        "approver_role": "auditor",
-                        "comment": "evaluation",
-                    }
-                ),
-                config,
-            )
+        for _ in range(2):  # at most: the customer's click, then a supervisor
+            waiting = graph.get_state(config).next
+            if waiting == ("confirm",):
+                trace.confirmation_requested = True
+                req = graph.get_state(config).values["confirmation_request"]
+                decision = "confirmed" if case.hitl == "approve" else "cancelled"
+                # What the API does on the click: decide the record as the customer.
+                ConfirmationService(env.db).decide(
+                    req["confirmation_id"], decision, customer_id=fx.customer_id
+                )
+                graph.invoke(
+                    Command(
+                        resume={"confirmation_id": req["confirmation_id"], "decision": decision}
+                    ),
+                    config,
+                )
+            elif waiting == ("human_approval",):
+                trace.approval_requested = True
+                decision = "approved" if case.hitl == "approve" else "rejected"
+                trace.approval_decision = decision
+                graph.invoke(
+                    Command(
+                        resume={
+                            "decision": decision,
+                            "approver_id": HUMAN_APPROVER,
+                            "approver_role": "auditor",
+                            "comment": "evaluation",
+                        }
+                    ),
+                    config,
+                )
+            else:
+                break
     except Exception as e:  # a crash is a result too: recorded, never hidden
         trace.error = f"{type(e).__name__}: {e}"
     trace.latency_ms = round((time.perf_counter() - started) * 1000, 1)
@@ -144,6 +164,7 @@ def run_system(env: CaseEnv, settings: Settings, llm: LLM, intent_fallback) -> T
     trace.final_text = v.get("final_response", "")
     trace.intent = v.get("intent")
     trace.route = v.get("route_reason")
+    trace.customer_decision = (v.get("customer_decision") or {}).get("decision")
     trace.writes = new_writes(env, before)
     trace.verified = bool((v.get("action_result") or {}).get("verified"))
     trace.tool_calls = [

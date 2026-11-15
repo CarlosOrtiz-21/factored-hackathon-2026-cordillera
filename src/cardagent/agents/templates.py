@@ -34,6 +34,27 @@ MESSAGES: dict[str, dict[str, str]] = {
         "supervisor confirma antes de aplicar; costuma levar poucos minutos e eu aviso assim "
         "que estiver pronto.",
     },
+    # A1: the customer's own confirmation control. No emojis: a loss/theft flow.
+    "confirm_prompt": {
+        "es": "Puedo bloquear tu tarjeta {card} por {reason}. Para hacerlo necesito que lo "
+        "confirmes con el botón de abajo; escribir «sí» no activa el bloqueo. Tienes "
+        "{minutes} minutos.",
+        "pt": "Posso bloquear seu cartão {card} por {reason}. Para isso preciso que você "
+        "confirme no botão abaixo; escrever «sim» não ativa o bloqueio. Você tem {minutes} "
+        "minutos.",
+    },
+    "confirm_cancelled": {
+        "es": "No bloqueé tu tarjeta {card}; sigue activa. Si cambias de opinión, pídemelo y "
+        "lo hacemos.",
+        "pt": "Não bloqueei seu cartão {card}; ele continua ativo. Se mudar de ideia, é só me "
+        "pedir.",
+    },
+    "confirm_expired": {
+        "es": "Pasó el tiempo de confirmación y no bloqueé tu tarjeta {card}; sigue activa. "
+        "Si aún quieres bloquearla, pídemelo de nuevo.",
+        "pt": "O tempo de confirmação acabou e não bloqueei seu cartão {card}; ele continua "
+        "ativo. Se ainda quiser bloqueá-lo, é só me pedir de novo.",
+    },
     "action_cancelled": {
         "es": "No se aplicó el bloqueo de tu tarjeta {card} porque la solicitud no fue aprobada. "
         f"Si sigues preocupado por tu tarjeta, un asesor te ayuda en la línea {B.phone}, "
@@ -131,6 +152,7 @@ PROGRESS: dict[str, dict[str, str]] = {
         "pt": "Procurando em nossas políticas…",
     },
     "critic": {"es": "Verificando la respuesta…", "pt": "Verificando a resposta…"},
+    "confirm": {"es": "Preparando la confirmación…", "pt": "Preparando a confirmação…"},
     "human_approval": {
         "es": "Esperando la confirmación de un supervisor…",
         "pt": "Aguardando a confirmação de um supervisor…",
@@ -138,6 +160,19 @@ PROGRESS: dict[str, dict[str, str]] = {
     "tool_executor": {"es": "Aplicando el bloqueo…", "pt": "Aplicando o bloqueio…"},
     "verify": {"es": "Confirmando que quedó aplicado…", "pt": "Confirmando que foi aplicado…"},
 }
+
+
+# The block reasons the tools accept, as the customer reads them in the confirmation.
+REASONS: dict[str, dict[str, str]] = {
+    "lost": {"es": "pérdida", "pt": "perda"},
+    "stolen": {"es": "robo", "pt": "roubo"},
+    "suspicious_activity": {"es": "actividad sospechosa", "pt": "atividade suspeita"},
+    "customer_request": {"es": "tu solicitud", "pt": "seu pedido"},
+}
+
+
+def reason_label(reason: str, language: str) -> str:
+    return REASONS.get(reason, {}).get(_lang(language), reason)
 
 
 def _lang(language: str) -> str:

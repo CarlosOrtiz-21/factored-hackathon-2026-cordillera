@@ -19,9 +19,9 @@ the auditor panel is at `/auditor/`) · **Evaluation:** [docs/EVAL_REPORT.md](do
 
 | Rule | How it is enforced |
 |---|---|
-| No side effect before a human approves | The agents only have read tools. A block is a *proposal*; a deterministic node (no LLM) runs it after an auditor approves, then re-reads the card to verify it. |
-| The approval gate is code, not a prompt | `requires_human_approval = is_write(action) or risk_score > 0.7` |
-| Segregation of duties | The approver must have the auditor role and cannot be the requester; approvals expire after 10 minutes. |
+| No side effect before a human decides | The agents only have read tools. A block is a *proposal*; the customer confirms it with a **button** (typed "sí" never counts), a deterministic node (no LLM) runs it, then re-reads the card to verify it. |
+| The gates are code, not a prompt | Every write waits for the customer's click; `risk_score > 0.7` adds a supervisor. The click is a database record the tool consumes in the write's transaction. |
+| Segregation of duties | For risky blocks the supervisor must have the auditor role and cannot be the requester; confirmations and approvals expire after 10 minutes. |
 | The LLM never sees personal data | Presidio + custom recognizers turn card numbers, IDs, and emails into tokens (`<TARJETA_1>`) before any model call; replies show `•••• 1234`. |
 | Customers only see their own data | Ownership is checked inside every bank tool; another customer's card answers "not found". |
 | Every node fails closed | Invalid critic output blocks the reply; an unverified action escalates; a failed triage falls back to a trained classifier or escalates. |

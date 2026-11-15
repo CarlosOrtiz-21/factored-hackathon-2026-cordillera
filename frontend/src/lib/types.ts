@@ -32,6 +32,7 @@ export type ChatEvent =
   | { type: "thread"; data: { thread_id: string; turn_id: string } }
   | { type: "node_start"; data: { node: string; message: string } }
   | { type: "interim"; data: { text: string } }
+  | { type: "confirm_required"; data: ConfirmControl }
   | { type: "approval_required"; data: { status: string; card: string; expires_at: string } }
   | { type: "token"; data: { text: string } }
   | { type: "final"; data: FinalData }
@@ -40,7 +41,29 @@ export type ChatEvent =
 export type ChatEventType = ChatEvent["type"];
 
 // Events after which the server closes the stream.
-export const TERMINAL_EVENTS: ReadonlySet<string> = new Set(["final", "approval_required", "error"]);
+export const TERMINAL_EVENTS: ReadonlySet<string> = new Set([
+  "final",
+  "confirm_required",
+  "approval_required",
+  "error",
+]);
+
+/** The customer's confirmation control (A1): only a click on it authorizes the block. */
+export interface ConfirmControl {
+  confirmation_id: string;
+  card: string; // masked, e.g. "•••• 1382"
+  reason: string;
+  reason_label: string; // localized by the backend
+  requires_supervisor: boolean;
+  expires_at: string;
+}
+
+export interface ConfirmResponse {
+  decision: "confirmed" | "cancelled" | "expired";
+  awaiting_supervisor: boolean;
+  verified: boolean;
+  customer_message: string;
+}
 
 // --- auditor --------------------------------------------------------------------------
 

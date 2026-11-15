@@ -17,7 +17,7 @@ from collections.abc import Callable
 from dataclasses import dataclass
 from typing import Any
 
-TERMINAL_EVENTS = {"final", "approval_required", "error"}
+TERMINAL_EVENTS = {"final", "confirm_required", "approval_required", "error"}
 
 
 @dataclass(frozen=True)

@@ -29,7 +29,12 @@ from pydantic import BaseModel, Field
 from cardagent.agents.templates import welcome
 from cardagent.api.container import Container, build_container
 from cardagent.api.events import TERMINAL_EVENTS, Event, sse
-from cardagent.bank.errors import InvalidSessionError, SessionExpiredError
+from cardagent.bank.errors import (
+    ConfirmationInvalidError,
+    InvalidSessionError,
+    NotFoundError,
+    SessionExpiredError,
+)
 from cardagent.bank.sessions import Session, StaffSession
 from cardagent.schemas.state import turn_input
 
@@ -54,6 +59,12 @@ class AuditorLoginRequest(BaseModel):
 class ChatRequest(BaseModel):
     message: str = Field(min_length=1)
     thread_id: str | None = Field(default=None, max_length=64)
+
+
+class ConfirmRequest(BaseModel):
+    thread_id: str = Field(max_length=64)
+    confirmation_id: str = Field(max_length=64)
+    decision: Literal["confirmed", "cancelled"]
 
 
 class ApproveRequest(BaseModel):
@@ -251,8 +262,10 @@ def create_app(container: Container | None = None) -> FastAPI:
         budget = c.settings.daily_budget_usd
         if budget and c.runner.spent_today() >= budget:  # public demo: cap the API spend
             raise HTTPException(503, "daily demo budget reached")
-        if c.runner.pending_request(thread_id) is not None:
-            raise HTTPException(409, "an action in this conversation is awaiting approval")
+        if c.runner.pending_control(thread_id) is not None:
+            # Typed text never confirms a block: the control does. A new message while a
+            # decision is pending is refused, so "sí" in the chat can't be mistaken for it.
+            raise HTTPException(409, "an action in this conversation is awaiting a decision")
 
         clean = c.guard.sanitize(thread_id, body.message)  # PII never goes further raw
         turn = f"turn-{uuid.uuid4().hex[:8]}"
@@ -274,7 +287,7 @@ def create_app(container: Container | None = None) -> FastAPI:
     async def chat_events(thread_id: str, session: Session = Depends(customer)):
         """Wait for the outcome of a pending approval (the customer's second stream)."""
         owned_thread(thread_id, session)
-        if c.runner.pending_request(thread_id) is None:  # already decided: replay the result
+        if c.runner.pending_control(thread_id) is None:  # already decided: replay the result
             values = c.runner.state(thread_id)
             final = Event(
                 "final",
@@ -285,8 +298,34 @@ def create_app(container: Container | None = None) -> FastAPI:
                 },
             )
             return sse_response(event_stream(thread_id, first=[final]))
-        ttl = c.settings.approval_ttl_minutes * 60 + 60
+        ttl = max(c.settings.approval_ttl_minutes, c.settings.confirmation_ttl_minutes) * 60 + 60
         return sse_response(event_stream(thread_id, timeout_s=ttl))
+
+    @app.post("/api/confirm")
+    async def confirm(body: ConfirmRequest, session: Session = Depends(customer)):
+        """The customer's click on the confirmation control (A1). The customer id comes
+        from the session: another customer's confirmation answers 404."""
+        owned_thread(body.thread_id, session)
+        try:
+            outcome = await asyncio.to_thread(
+                c.runner.decide_confirmation,
+                body.thread_id,
+                body.confirmation_id,
+                body.decision,
+                session.customer_id,
+            )
+        except NotFoundError:
+            raise HTTPException(404, "no pending confirmation for this conversation") from None
+        except ConfirmationInvalidError as e:
+            raise HTTPException(409, str(e)) from None
+        if outcome is None:
+            raise HTTPException(404, "no pending confirmation for this conversation")
+        return {
+            "decision": outcome.decision,
+            "awaiting_supervisor": outcome.awaiting_supervisor,
+            "verified": outcome.verified,
+            "customer_message": outcome.final_response,
+        }
 
     @app.get("/api/approvals/pending")
     async def pending(staff: StaffSession = Depends(auditor)):

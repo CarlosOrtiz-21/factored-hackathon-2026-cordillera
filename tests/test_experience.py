@@ -84,14 +84,15 @@ def test_prompt_versions_are_selectable_and_recorded(db, clock):  # noqa: F811
 def test_customer_is_told_the_block_is_pending_without_claiming_it_is_done(db, clock):  # noqa: F811
     system, state = block_flow(db, clock)
     pending = state["interim_response"]
-    assert "Ya solicité el bloqueo de tu tarjeta •••• 4060" in pending
+    assert "Puedo bloquear tu tarjeta •••• 4060 por pérdida" in pending
+    assert "escribir «sí» no activa el bloqueo" in pending
     assert "ya está bloqueada" not in pending
     assert state["messages"][-1]["content"] == pending  # part of the conversation history
 
 
 def test_blocked_confirmation_cites_policy_sources_and_suggests_next_steps(db, clock):  # noqa: F811
     system, _ = block_flow(db, clock)
-    state = system.approve()
+    state = system.confirm()
     responded = [e for e in state["audit_trail"] if e["event"] == "responded"][-1]
     assert responded["payload"]["policy_sources"] == POLICY_SOURCES["blocked"]
     assert "¿Cómo pido la reposición?" in state["suggestions"]
@@ -123,7 +124,7 @@ def test_critic_without_rewrite_keeps_the_drafts_voice(db, clock):  # noqa: F811
 def test_customer_name_never_enters_the_graph(db, clock):  # noqa: F811
     db.query("UPDATE customers SET first_name = 'Valentina' WHERE customer_id = 'C1'")
     system, _ = block_flow(db, clock)
-    state = system.approve()
+    state = system.confirm()
     seen_by_llm = json.dumps(system.llm.calls, ensure_ascii=False)
     kept_in_state = json.dumps(state, ensure_ascii=False, default=str)
     assert "Valentina" not in seen_by_llm and "Valentina" not in kept_in_state
@@ -139,7 +140,7 @@ def test_suggestions_follow_the_outcome(db, clock):  # noqa: F811
     system = System(db, clock, llm)
     token = system.card_token()
     system.send(f"bloquea {token}", refs=[token])
-    state = system.approve("rejected")
+    state = system.confirm("cancelled")
     assert state["suggestions"] == SUGGESTIONS["cancelled"]["es"]
 
 

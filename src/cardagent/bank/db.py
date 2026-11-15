@@ -44,6 +44,21 @@ CREATE TABLE IF NOT EXISTS threads (       -- which customer owns each conversat
     customer_id TEXT NOT NULL,
     created_at TEXT NOT NULL
 );
+CREATE TABLE IF NOT EXISTS confirmations (   -- the customer's click on a write (A1)
+    confirmation_id TEXT PRIMARY KEY,
+    thread_id TEXT NOT NULL,
+    customer_id TEXT NOT NULL,
+    idempotency_key TEXT NOT NULL,
+    card_token TEXT NOT NULL,
+    reason TEXT NOT NULL,
+    requires_supervisor INTEGER NOT NULL,  -- 1: a supervisor must also approve (risky)
+    created_at TEXT NOT NULL,
+    expires_at TEXT NOT NULL,
+    status TEXT NOT NULL,                  -- pending | confirmed | cancelled | expired
+    decided_by TEXT,                       -- the customer id behind the click, set by the API
+    decided_at TEXT,
+    consumed_at TEXT                       -- set by block_card, in the write's transaction
+);
 CREATE TABLE IF NOT EXISTS llm_spend (     -- estimated Anthropic spend per UTC day (budget cap)
     day TEXT PRIMARY KEY,
     usd REAL NOT NULL

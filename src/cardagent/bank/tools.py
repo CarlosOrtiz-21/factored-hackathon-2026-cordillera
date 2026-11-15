@@ -5,8 +5,10 @@
 - returns tokens and last-4 digits, never full card numbers.
 
 Read tools are safe to expose to the executor agent. The only write tool, `block_card`,
-also demands an ApprovalGrant bound to its exact idempotency key (defense in depth: even a
-buggy graph can't block a card without a human decision).
+also demands a WriteAuthorization: the customer's own confirmation record (consumed in the
+write's transaction, so it authorizes one write, once) and, when that record says the case
+is risky, a supervisor's ApprovalGrant bound to the same idempotency key. Defense in depth:
+even a buggy graph can't block a card without a human decision.
 """
 
 import uuid
@@ -21,6 +23,8 @@ from cardagent.bank.db import BankDB
 from cardagent.bank.errors import (
     ActionNotAllowedError,
     ApprovalInvalidError,
+    ApprovalRequiredError,
+    ConfirmationInvalidError,
     IdempotencyConflictError,
     NotFoundError,
 )
@@ -79,6 +83,17 @@ class ApprovalGrant(BaseModel):
     requester_id: str
     decided_at: datetime
     expires_at: datetime
+
+
+class WriteAuthorization(BaseModel):
+    """What a write needs: the customer's confirmation id, plus a supervisor's grant when
+    the confirmation record is marked `requires_supervisor`. The record itself is re-read
+    from the database by the tool; nothing here is trusted on its own."""
+
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    confirmation_id: str
+    approval: ApprovalGrant | None = None
 
 
 # --- helpers ------------------------------------------------------------------------
@@ -171,9 +186,56 @@ def _check_approval(ctx: ToolContext, args: BlockCardArgs, approval: ApprovalGra
         raise ApprovalInvalidError("; ".join(problems))
 
 
-def block_card(ctx: ToolContext, args: BlockCardArgs, approval: ApprovalGrant) -> dict:
+def _check_confirmation(ctx: ToolContext, args: BlockCardArgs, auth: WriteAuthorization):
+    """The customer's click, re-read from the database. Returns the row when it authorizes
+    exactly this write; raises otherwise."""
+    row = ctx.db.one(
+        "SELECT * FROM confirmations WHERE confirmation_id = ?", (auth.confirmation_id,)
+    )
+    if (
+        row is None
+        or row["thread_id"] != ctx.thread_id
+        or row["customer_id"] != ctx.session.customer_id
+    ):
+        raise ConfirmationInvalidError("no confirmation for this conversation")
+    problems = []
+    if row["status"] != "confirmed":
+        problems.append(f"confirmation is {row['status']}, not confirmed")
+    if row["decided_by"] != ctx.session.customer_id:
+        problems.append("confirmation was not decided by the card holder")
+    if row["idempotency_key"] != args.idempotency_key:
+        problems.append("confirmation is for a different action")
+    if row["card_token"] != args.card_token:
+        problems.append("confirmation is for a different card")
+    if row["reason"] != args.reason:
+        problems.append("confirmation is for a different reason")
+    if row["consumed_at"]:
+        problems.append("confirmation already used")
+    if ctx.clock() >= datetime.fromisoformat(row["expires_at"]):
+        problems.append("confirmation expired")
+    if problems:
+        raise ConfirmationInvalidError("; ".join(problems))
+    if row["requires_supervisor"]:
+        if auth.approval is None:
+            raise ApprovalRequiredError("this block also needs a supervisor's approval")
+        _check_approval(ctx, args, auth.approval)
+    return row
+
+
+def _consume(conn, confirmation_id: str, now: datetime) -> None:
+    """Inside the write's transaction: a confirmation authorizes one write, once."""
+    cur = conn.execute(
+        "UPDATE confirmations SET consumed_at = ? WHERE confirmation_id = ? "
+        "AND consumed_at IS NULL",
+        (now.isoformat(), confirmation_id),
+    )
+    if cur.rowcount != 1:
+        raise ConfirmationInvalidError("confirmation already used")
+
+
+def block_card(ctx: ToolContext, args: BlockCardArgs, auth: WriteAuthorization) -> dict:
     # Idempotency first: a retry of an action that already happened returns the original
-    # result, even if its approval has expired since.
+    # result, even if its confirmation has lapsed since.
     previous = ctx.db.one(
         "SELECT * FROM card_actions WHERE idempotency_key = ?", (args.idempotency_key,)
     )
@@ -188,11 +250,19 @@ def block_card(ctx: ToolContext, args: BlockCardArgs, approval: ApprovalGrant) -
             "replayed": True,
         }
 
-    _check_approval(ctx, args, approval)
+    confirmation = _check_confirmation(ctx, args, auth)
+    # Who authorized the write, as the audit row records it: the supervisor when one was
+    # required, otherwise the card holder who clicked.
+    approver = (
+        auth.approval.approver_id if auth.approval else f"customer:{confirmation['decided_by']}"
+    )
+    now = ctx.clock()
     status = card["product_status"]
     if status == "Closed":
         raise ActionNotAllowedError("closed cards cannot be blocked")
     if status == "Blocked":
+        with ctx.db.transaction() as conn:  # a verified no-op still uses up the confirmation
+            _consume(conn, confirmation["confirmation_id"], now)
         return {
             "action_id": None,
             "status_before": status,
@@ -203,6 +273,7 @@ def block_card(ctx: ToolContext, args: BlockCardArgs, approval: ApprovalGrant) -
 
     action_id = str(uuid.uuid4())
     with ctx.db.transaction() as conn:
+        _consume(conn, confirmation["confirmation_id"], now)
         conn.execute(
             "UPDATE cards SET product_status = 'Blocked' WHERE product_id = ?",
             (card["product_id"],),
@@ -218,11 +289,11 @@ def block_card(ctx: ToolContext, args: BlockCardArgs, approval: ApprovalGrant) -
                 card["product_id"],
                 ctx.session.customer_id,
                 args.reason,
-                approval.requester_id,
-                approval.approver_id,
+                ctx.session.customer_id,
+                approver,
                 status,
                 after,
-                ctx.clock().isoformat(),
+                now.isoformat(),
             ),
         )
     return {

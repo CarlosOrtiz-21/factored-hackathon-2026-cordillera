@@ -10,6 +10,7 @@ from datetime import timedelta
 import pytest
 from langgraph.types import Command
 
+from cardagent.bank.confirmations import ConfirmationService
 from cardagent.bank.errors import ToolUnavailableError
 from cardagent.bank.registry import ToolRegistry
 from cardagent.bank.sessions import SessionService
@@ -127,6 +128,22 @@ class System:
             self.config,
         )
 
+    def confirm(self, decision="confirmed", customer="C1", decide=True):
+        """What the API does on the customer's click: decide the record, then resume.
+        `decide=False` resumes without a click, which must never authorize anything."""
+        req = self.graph.get_state(self.config).values["confirmation_request"]
+        if decide:
+            ConfirmationService(self.db, self.clock).decide(
+                req["confirmation_id"], decision, customer_id=customer
+            )
+        return self.graph.invoke(
+            Command(resume={"confirmation_id": req["confirmation_id"], "decision": decision}),
+            self.config,
+        )
+
+    def waiting_for_confirmation(self) -> bool:
+        return self.graph.get_state(self.config).next == ("confirm",)
+
     def waiting_for_approval(self) -> bool:
         return self.graph.get_state(self.config).next == ("human_approval",)
 
@@ -159,21 +176,66 @@ def block_flow(db, clock, risk=0.0):  # noqa: F811
 
 def test_write_interrupts_before_execution_even_at_zero_risk(db, clock):  # noqa: F811
     system, state = block_flow(db, clock, risk=0.0)
-    assert system.waiting_for_approval()
-    assert state["requires_human_approval"] is True  # the code rule, not the LLM's risk
+    assert system.waiting_for_confirmation()
+    assert state["requires_human_approval"] is True  # the code rule: a human decides first
+    assert state["confirmation_request"]["requires_supervisor"] is False
     assert system.status() == "Active" and system.actions() == 0  # nothing happened yet
     payload = state["__interrupt__"][0].value
+    assert payload["type"] == "confirm_required"
     assert payload["card"] == "•••• 4060" and "4028620856924060" not in json.dumps(payload)
+    assert "confirmes con el botón" in state["interim_response"]
 
 
-def test_approved_block_is_executed_then_verified(db, clock):  # noqa: F811
+def test_confirmed_block_is_executed_then_verified(db, clock):  # noqa: F811
     system, _ = block_flow(db, clock)
-    state = system.approve()
+    state = system.confirm()
     assert system.status() == "Blocked" and system.actions() == 1
     assert state["action_result"]["verified"] is True
     assert state["final_response"].startswith("Listo, tu tarjeta •••• 4060 ya está bloqueada")
     nodes = [e["node"] for e in state["audit_trail"]]
-    assert nodes.index("human_approval") < nodes.index("tool_executor") < nodes.index("verify")
+    assert nodes.index("confirm") < nodes.index("tool_executor") < nodes.index("verify")
+    assert "human_approval" not in nodes  # a plain block never waits for a supervisor
+    assert system.db.one("SELECT approver_id FROM card_actions")[0] == "customer:C1"
+
+
+def test_cancelled_confirmation_leaves_card_untouched(db, clock):  # noqa: F811
+    system, _ = block_flow(db, clock)
+    state = system.confirm("cancelled")
+    assert system.status() == "Active" and system.actions() == 0
+    assert state["customer_decision"]["decision"] == "cancelled"
+    assert state["final_response"].startswith("No bloqueé tu tarjeta •••• 4060")
+
+
+def test_resume_payload_cannot_confirm_without_the_record(db, clock):  # noqa: F811
+    """A resume that claims 'confirmed' (a bug, a replay, a forged call) is not a click:
+    the record in the database is still pending, so the block is treated as cancelled."""
+    system, _ = block_flow(db, clock)
+    state = system.confirm("confirmed", decide=False)
+    assert system.status() == "Active" and system.actions() == 0
+    assert state["customer_decision"]["decision"] == "cancelled"
+    assert state["customer_decision"]["note"] == "resumed without the customer's decision"
+
+
+def test_lapsed_confirmation_is_reported_as_not_blocked(db, clock):  # noqa: F811
+    system, _ = block_flow(db, clock)
+    clock.advance(minutes=11)  # confirmation TTL is 10 minutes
+    state = system.confirm("confirmed", decide=False)
+    assert system.status() == "Active"
+    assert state["customer_decision"]["decision"] == "expired"
+    assert "no bloqueé tu tarjeta •••• 4060" in state["final_response"]
+
+
+def test_risky_block_needs_the_customer_and_then_a_supervisor(db, clock):  # noqa: F811
+    system, state = block_flow(db, clock, risk=0.9)
+    assert state["confirmation_request"]["requires_supervisor"] is True
+    state = system.confirm()
+    assert system.waiting_for_approval() and system.status() == "Active"
+    assert "Ya solicité el bloqueo de tu tarjeta •••• 4060" in state["interim_response"]
+    state = system.approve()
+    assert system.status() == "Blocked" and state["action_result"]["verified"] is True
+    nodes = [e["node"] for e in state["audit_trail"]]
+    assert nodes.index("confirm") < nodes.index("human_approval") < nodes.index("tool_executor")
+    assert system.db.one("SELECT approver_id FROM card_actions")[0] == "auditor-7"
 
 
 @pytest.mark.parametrize(
@@ -184,16 +246,24 @@ def test_approved_block_is_executed_then_verified(db, clock):  # noqa: F811
         ("approved", "someone", "customer"),
     ],  # not an auditor
 )
-def test_invalid_or_negative_decisions_leave_card_untouched(db, clock, decision, approver, role):  # noqa: F811
-    system, _ = block_flow(db, clock)
+def test_invalid_or_negative_supervisor_decisions_leave_card_untouched(
+    db,  # noqa: F811
+    clock,  # noqa: F811
+    decision,
+    approver,
+    role,
+):
+    system, _ = block_flow(db, clock, risk=0.9)
+    system.confirm()
     state = system.approve(decision, approver, role)
     assert system.status() == "Active" and system.actions() == 0
     assert state["human_decision"]["decision"] == "rejected"
     assert "No se aplicó el bloqueo" in state["final_response"]
 
 
-def test_expired_approval_cancels_the_action(db, clock):  # noqa: F811
-    system, _ = block_flow(db, clock)
+def test_expired_supervisor_approval_cancels_the_action(db, clock):  # noqa: F811
+    system, _ = block_flow(db, clock, risk=0.9)
+    system.confirm()
     clock.advance(minutes=11)  # approval TTL is 10 minutes
     state = system.approve()
     assert system.status() == "Active"
@@ -215,7 +285,7 @@ def test_outage_during_execution_is_never_reported_as_done(db, clock):  # noqa: 
     system = System(db, clock, llm, registry=ToolRegistry(fault_injector=outage))
     token = system.card_token()
     system.send(f"bloquea {token}", refs=[token])
-    state = system.approve()
+    state = system.confirm()
     assert system.status() == "Active"
     assert state["route_reason"] == "action_not_verified"
     assert "Listo" not in state["final_response"]
@@ -224,7 +294,7 @@ def test_outage_during_execution_is_never_reported_as_done(db, clock):  # noqa: 
 
 def test_audit_trail_never_contains_raw_card_numbers(db, clock):  # noqa: F811
     system, _ = block_flow(db, clock)
-    state = system.approve()
+    state = system.confirm()
     dump = json.dumps(state["audit_trail"], default=str)
     assert all(number not in dump for _, number, _, _ in CARDS.values())
 
@@ -433,7 +503,7 @@ def test_verify_survives_a_transient_outage(db, clock):  # noqa: F811
 
     system.deps.registry.fault_injector = flaky_after_block
     system.graph = build_graph(system.deps, checkpointer=system.graph.checkpointer)
-    state = system.approve()
+    state = system.confirm()
     assert state["action_result"]["verified"] and calls["n"] == 2
 
 

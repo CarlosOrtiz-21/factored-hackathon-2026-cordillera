@@ -135,7 +135,7 @@ respond  = writes the answer in the customer's language; re-identifies only data
 requires_human_approval = is_write(proposed_action) or risk_score > 0.7
 ```
 
-The critic's `risk_score` is an input signal; the rule is the barrier.
+The critic's `risk_score` is an input signal; the rule is the barrier. Since A1 (2026-11-14) the human is the card holder, through a confirmation control, and the supervisor is added only when `risk_score > 0.7`; see the deviations list.
 
 ## 5. Decisions
 
@@ -292,4 +292,5 @@ All metrics are broken down by language and customer segment, with 3 runs to mea
   - The golden set keeps ~120 cases and all categories, but only a **33-case stratified subset runs live**, once (≈US$2.6, hard cap), instead of 3 runs of everything. Everything that needs no model (fixtures, PII guard, injection regex, intent fallback, language heuristic) runs offline on all cases for free.
   - **No all-Haiku ablation and no LLM judge** for now (cost, and the judge needs human ratings to be valid). Scoring is deterministic.
   - Added an **escalation** category (human requests and disputes) so the "human required" path is measured directly.
+- **Graduated oversight (A1, 2026-11-14, from the retrospective):** the original design sent every block to a supervisor. Now every write waits for the **card holder's own confirmation control** (a click, recorded in `confirmations`, consumed by `block_card` in the write's transaction; typed text never confirms), and only a risky block (`risk_score > 0.7`) also waits for the supervisor. The golden rule is unchanged, "no side effect before a human decides"; what changed is which human, and the audit trail records both decisions. Nodes: `critic → confirm (interrupt) → [human_approval (interrupt)] → tool_executor → verify`.
 - **Data-quality finding (step 4):** 10/2000 demo customers have a duplicated first name ("Lorena Lorena"). The welcome message collapses exact repeats.

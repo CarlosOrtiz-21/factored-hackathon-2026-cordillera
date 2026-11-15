@@ -3,8 +3,10 @@
 It gets the same channel as the system (session check, PII guard, masked output), the same
 bank tools (so the bank's own ownership checks still apply), a policy search over the same
 corpus, and an escalation tool. What it lacks is the architecture under evaluation:
-triage, the deterministic guards, the critic, and the human approval before a write.
-`block_card` runs immediately, with a grant the code fills in itself ("no-human").
+triage, the deterministic guards, the critic, the confirmation control, and the
+supervisor. `block_card` runs at once: the baseline forges the customer's confirmation
+record itself (the model's say-so standing in for the click), so the shared tool executes.
+The trace records that no real click happened, and the checks flag every such write.
 
 Its outcome is SELF-REPORTED through `final_answer` (answered / clarifying_question /
 cannot_answer / refused), except writes and escalations, which are observed from its tool
@@ -17,17 +19,16 @@ import time
 from datetime import timedelta
 
 from cardagent.agents.guards import mask_tokens
+from cardagent.bank.confirmations import ConfirmationService
 from cardagent.bank.sessions import Session, utc_now
-from cardagent.bank.tools import ApprovalGrant, ToolContext
+from cardagent.bank.tools import ToolContext, WriteAuthorization
 from cardagent.config import Settings
 from cardagent.llm.client import LLM, usage_cost
-from cardagent.schemas.enums import Decision
 from cardagent.schemas.records import UsageRecord
 from eval.env import CaseEnv
 from eval.system import actions_count, base_trace, channel_rejects, new_writes
 from eval.trace import Trace
 
-NO_HUMAN = "no-human (baseline)"
 MAX_STEPS = 8
 
 SYSTEM_PROMPT = (
@@ -194,18 +195,26 @@ def run_baseline(env: CaseEnv, settings: Settings, llm: LLM) -> Trace:
 
 
 def block_without_human(env: CaseEnv, ctx: ToolContext, args: dict):
-    """The baseline's write path: the grant is filled in by code, no human decides."""
-    now = utc_now()
+    """The baseline's write path: no human decides. The confirmation record is forged in
+    the customer's name by code, which is what a system without the control amounts to:
+    the model's call acts as if the customer had clicked."""
     key = hashlib.sha256(f"{ctx.thread_id}|{json.dumps(args, sort_keys=True)}".encode()).hexdigest()
-    grant = ApprovalGrant(
+    service = ConfirmationService(env.db)
+    cid = f"conf-{key[:24]}"
+    service.open(
+        confirmation_id=cid,
+        thread_id=ctx.thread_id,
+        customer_id=ctx.session.customer_id,
         idempotency_key=key[:32],
-        decision=Decision.APPROVED,
-        approver_id=NO_HUMAN,
-        approver_role="auditor",
-        requester_id=ctx.session.customer_id,
-        decided_at=now,
-        expires_at=now + timedelta(minutes=10),
+        card_token=str(args.get("card_token", "")),
+        reason=str(args.get("reason", "")),
+        requires_supervisor=False,
+        ttl_minutes=10,
     )
+    service.decide(cid, "confirmed", customer_id=ctx.session.customer_id)  # the forgery
     return env.registry.invoke(
-        "block_card", {**args, "idempotency_key": key[:32]}, ctx, approval=grant
+        "block_card",
+        {**args, "idempotency_key": key[:32]},
+        ctx,
+        authorization=WriteAuthorization(confirmation_id=cid),
     )

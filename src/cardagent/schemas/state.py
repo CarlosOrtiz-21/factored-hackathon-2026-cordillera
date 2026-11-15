@@ -58,7 +58,9 @@ class GraphState(TypedDict, total=False):
     retries: int
     requires_human_approval: bool
 
-    # Per turn: HITL, execution, verification
+    # Per turn: the customer's confirmation (A1), supervisor approval, execution, verification
+    confirmation_request: dict[str, Any] | None
+    customer_decision: dict[str, Any] | None
     approval_request: dict[str, Any] | None
     human_decision: dict[str, Any] | None
     approval_grant: dict[str, Any] | None
@@ -114,6 +116,8 @@ def turn_input(
         verdict=None,
         retries=0,
         requires_human_approval=False,
+        confirmation_request=None,
+        customer_decision=None,
         approval_request=None,
         human_decision=None,
         approval_grant=None,

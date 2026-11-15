@@ -17,6 +17,7 @@ from langgraph.types import Command
 
 from cardagent.agents.guards import load_intent_fallback
 from cardagent.agents.templates import progress, welcome
+from cardagent.bank.confirmations import ConfirmationService
 from cardagent.bank.db import BankDB
 from cardagent.bank.registry import ToolRegistry
 from cardagent.bank.sessions import SessionService
@@ -112,9 +113,28 @@ def main() -> None:
             language,
         )
 
+        while (snapshot := graph.get_state(config)).next == ("confirm",):
+            control = snapshot.tasks[0].interrupts[0].value
+            print(f"{DIM}  === CONFIRMATION (the customer's button; typed text never counts) ===")
+            print(f"  block {control['card']} for {control['reason_label']}")
+            answer = input("  press the button? [y/N] ").strip().lower()
+            print(RESET, end="")
+            decision = "confirmed" if answer == "y" else "cancelled"
+            ConfirmationService(db).decide(
+                control["confirmation_id"], decision, customer_id=customer
+            )
+            language = run(
+                graph,
+                Command(
+                    resume={"confirmation_id": control["confirmation_id"], "decision": decision}
+                ),
+                config,
+                language,
+            )
+
         while (snapshot := graph.get_state(config)).next == ("human_approval",):
             request = snapshot.tasks[0].interrupts[0].value
-            print(f"{DIM}  === APPROVAL REQUIRED (auditor view) ===")
+            print(f"{DIM}  === APPROVAL REQUIRED (auditor view, risky block) ===")
             print("  " + json.dumps(request, ensure_ascii=False, indent=2).replace("\n", "\n  "))
             answer = input("  approve? [y/N] ").strip().lower()
             approver = input("  approver id [auditor-demo]: ").strip() or "auditor-demo"

@@ -7,15 +7,15 @@
 // What the customer sees is always text the backend already reviewed: `token` events are
 // pieces of the critic-approved final answer, never raw LLM output.
 
-import { Clock, LogOut, RotateCw, Send, ShieldCheck, SlidersHorizontal } from "lucide-react";
+import { Check, Clock, LogOut, RotateCw, Send, ShieldCheck, SlidersHorizontal, X } from "lucide-react";
 import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import { Disclaimer, Header } from "@/components/Brand";
-import { ApiError, describeError } from "@/lib/api";
+import { ApiError, api, describeError } from "@/lib/api";
 import { streamEvents } from "@/lib/sse";
 import { countdown, isPast, useNow } from "@/lib/time";
-import type { ChatEvent, FinalData, Role } from "@/lib/types";
+import type { ChatEvent, ConfirmControl, FinalData, Role } from "@/lib/types";
 
 export interface CustomerSession {
   token: string;
@@ -34,7 +34,8 @@ interface Msg {
   meta?: FinalData;
 }
 
-type Phase = "idle" | "streaming" | "waiting";
+// confirming: the customer's own control is on screen (A1); typing is disabled until a click
+type Phase = "idle" | "streaming" | "confirming" | "waiting";
 
 const STARTERS = [
   "¿Mi tarjeta está activa?",
@@ -63,6 +64,8 @@ export function ChatView({
   const [suggestions, setSuggestions] = useState<string[]>(STARTERS);
   const [phase, setPhase] = useState<Phase>("idle");
   const [approval, setApproval] = useState<{ card: string; expiresAt: string } | null>(null);
+  const [control, setControl] = useState<ConfirmControl | null>(null);
+  const [deciding, setDeciding] = useState(false);
   const [waitFailed, setWaitFailed] = useState(false);
   const [showDetails, setShowDetails] = useState(false);
   const [draft, setDraft] = useState("");
@@ -106,6 +109,11 @@ export function ChatView({
           case "interim": // "requested, pending supervisor": never claims it's done
             update(id, { text: ev.data.text, progress: undefined });
             break;
+          case "confirm_required":
+            terminal = "confirm_required";
+            setControl(ev.data);
+            update(id, (m) => ({ status: "done", progress: undefined, text: m.text }));
+            break;
           case "approval_required":
             terminal = "approval_required";
             setApproval({ card: ev.data.card, expiresAt: ev.data.expires_at });
@@ -129,6 +137,7 @@ export function ChatView({
             }));
             setSuggestions(ev.data.suggestions ?? []);
             setApproval(null);
+            setControl(null);
             break;
           case "error":
             terminal = "error";
@@ -172,6 +181,36 @@ export function ChatView({
     }
   }, [runStream, session.threadId]);
 
+  /** The click on the confirmation control: the only thing that authorizes a block. */
+  async function decide(decision: "confirmed" | "cancelled") {
+    if (!control || deciding) return;
+    setDeciding(true);
+    try {
+      const res = await api.confirm(session.token, session.threadId, control.confirmation_id, decision);
+      setControl(null);
+      if (res.awaiting_supervisor) {
+        setPhase("waiting"); // confirmed, but risky: a supervisor still has to approve
+        await waitForDecision();
+      } else {
+        setMessages((ms) => [
+          ...ms,
+          { id: newId(), role: "assistant", text: res.customer_message, status: "done" },
+        ]);
+        setPhase("idle");
+      }
+    } catch (err) {
+      if (err instanceof ApiError && err.status === 401) onSessionEnd("expired");
+      setMessages((ms) => [
+        ...ms,
+        { id: newId(), role: "assistant", text: describeError(err), status: "error" },
+      ]);
+      setControl(null);
+      setPhase("idle");
+    } finally {
+      setDeciding(false);
+    }
+  }
+
   async function send(text: string) {
     const message = text.trim();
     if (!message || phase !== "idle") return;
@@ -189,7 +228,9 @@ export function ChatView({
       method: "POST",
       body: { message, thread_id: session.threadId },
     });
-    if (outcome === "approval_required") {
+    if (outcome === "confirm_required") {
+      setPhase("confirming"); // the control decides; the composer stays closed
+    } else if (outcome === "approval_required") {
       setPhase("waiting");
       await waitForDecision();
     } else {
@@ -199,7 +240,9 @@ export function ChatView({
 
   const sessionOver = isPast(session.expiresAt, now);
   const placeholder =
-    phase === "waiting"
+    phase === "confirming"
+      ? "Confirma o cancela con los botones de arriba"
+      : phase === "waiting"
       ? "Esperando la decisión del supervisor…"
       : phase === "streaming"
         ? "Lía está respondiendo…"
@@ -268,6 +311,45 @@ export function ChatView({
 
       <footer className="border-t border-andes-100 bg-white">
         <div className="mx-auto max-w-3xl px-4 pt-3">
+          {control && (
+            <div
+              role="group"
+              aria-labelledby="confirm-title"
+              className="mb-3 rounded-xl border-2 border-andes-500 bg-white p-4 text-sm shadow-sm"
+            >
+              <p id="confirm-title" className="font-medium text-andes-900">
+                ¿Bloqueo tu tarjeta <strong>{control.card}</strong> por {control.reason_label}?
+              </p>
+              <p className="mt-1 text-slate-600">
+                Solo este botón lo activa; escribir «sí» no cuenta.
+                {control.requires_supervisor && " Como es un caso de riesgo, un supervisor también lo revisará."}
+                <span className="ml-2 font-mono text-xs">
+                  {isPast(control.expires_at, now) ? "vencido" : `vence en ${countdown(control.expires_at, now)}`}
+                </span>
+              </p>
+              <div className="mt-3 flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  disabled={deciding}
+                  onClick={() => decide("confirmed")}
+                  className="flex min-h-11 items-center gap-1 rounded-lg bg-andes-700 px-4 py-2 font-medium text-white hover:bg-andes-800 disabled:opacity-60"
+                >
+                  <Check className="h-4 w-4" aria-hidden="true" />
+                  Sí, bloquear {control.card}
+                </button>
+                <button
+                  type="button"
+                  disabled={deciding}
+                  onClick={() => decide("cancelled")}
+                  className="flex min-h-11 items-center gap-1 rounded-lg border border-line px-4 py-2 font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-60"
+                >
+                  <X className="h-4 w-4" aria-hidden="true" />
+                  No, dejarla activa
+                </button>
+              </div>
+            </div>
+          )}
+
           {approval && (
             <div
               className="mb-3 flex flex-wrap items-center gap-2 rounded-xl border border-sunrise-400 bg-sunrise-100 px-3 py-2 text-sm"

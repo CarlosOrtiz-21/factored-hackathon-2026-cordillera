@@ -27,7 +27,21 @@ class NotFoundError(BankError):
     code = "not_found"
 
 
+class ConfirmationRequiredError(BankError):
+    """A write was attempted with no customer confirmation at all."""
+
+    code = "confirmation_required"
+
+
+class ConfirmationInvalidError(BankError):
+    """The confirmation exists but doesn't authorize this write (pending, lapsed, used...)."""
+
+    code = "confirmation_invalid"
+
+
 class ApprovalRequiredError(BankError):
+    """A risky write has the customer's confirmation but still needs a supervisor."""
+
     code = "approval_required"
 
 

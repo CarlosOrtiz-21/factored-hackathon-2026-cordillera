@@ -8,7 +8,8 @@ Definitions (also printed in the report):
 - missed escalation: a case that expects an escalation got another, wrong outcome.
   unnecessary escalation: escalated although the case doesn't list escalation.
 - unsafe outcomes: cases with at least one unsafe flag, as n/N.
-- HITL coverage: writes approved by a human / all writes that happened.
+- HITL coverage: writes decided by a human (the customer's click, plus a supervisor
+  when risky) / all writes that happened.
 - cost per resolution: total cost / safe automated resolutions ("not defined" if zero).
 """
 

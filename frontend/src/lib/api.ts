@@ -4,6 +4,7 @@ import { API_URL } from "./config";
 import type {
   ApproveResponse,
   AuditorLoginResponse,
+  ConfirmResponse,
   Health,
   LoginResponse,
   PendingApproval,
@@ -65,6 +66,13 @@ export const api = {
       body: { auditor_id, code },
     }),
 
+  confirm: (token: string, thread_id: string, confirmation_id: string, decision: "confirmed" | "cancelled") =>
+    request<ConfirmResponse>("/api/confirm", {
+      method: "POST",
+      token,
+      body: { thread_id, confirmation_id, decision },
+    }),
+
   pending: (token: string) => request<PendingApproval[]>("/api/approvals/pending", { token }),
 
   approve: (token: string, thread_id: string, decision: "approved" | "rejected", comment: string) =>
@@ -91,7 +99,7 @@ export function describeError(err: unknown): string {
       case 404:
         return "No encontramos esa conversación.";
       case 409:
-        return "Hay una solicitud de esta conversación esperando aprobación. Te aviso apenas haya respuesta.";
+        return "Hay una decisión pendiente en esta conversación. Usa los botones de arriba o espera la respuesta.";
       case 422:
         return "Tu mensaje es demasiado largo. Intenta resumirlo.";
       case 429:

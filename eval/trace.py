@@ -15,7 +15,7 @@ class Write(BaseModel):
 
     last4: str
     customer_id: str
-    approver_id: str
+    approver_id: str  # "customer:<id>" for a plain block, the auditor for a risky one
     status_before: str
     status_after: str
 
@@ -30,7 +30,9 @@ class Trace(BaseModel):
     final_text: str = ""
     intent: str | None = None
     route: str | None = None
-    approval_requested: bool = False
+    confirmation_requested: bool = False  # the customer's control was shown
+    customer_decision: str | None = None  # confirmed | cancelled | expired
+    approval_requested: bool = False  # a supervisor was asked (risky cases)
     approval_decision: str | None = None
     writes: list[Write] = Field(default_factory=list)
     verified: bool = False

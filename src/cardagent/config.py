@@ -49,6 +49,7 @@ class Settings(BaseSettings):
     max_react_iterations: int = Field(default=5, ge=1)
     max_critic_retries: int = Field(default=2, ge=0)
     approval_ttl_minutes: int = Field(default=10, ge=1)
+    confirmation_ttl_minutes: int = Field(default=10, ge=1)  # the customer's button
     session_ttl_minutes: int = Field(default=15, ge=1)
 
     # API (step 4). Demo codes stand in for an identity provider's second factor: a

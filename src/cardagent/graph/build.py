@@ -10,8 +10,11 @@ tested without a model and no model output can skip the approval step.
 
 Golden rule, enforced three times:
 1. the executor only has read tools plus `propose_block_card`, which executes nothing;
-2. `requires_human_approval` is computed in code (write OR risk > threshold);
-3. `block_card` itself refuses to run without a valid ApprovalGrant.
+2. the gates are computed in code: every write waits for the card holder's confirmation
+   control (a click, never typed text or the model), and a risky one (risk > threshold)
+   also waits for a supervisor;
+3. `block_card` itself refuses to run without the confirmation record, consumed in the
+   write's transaction, plus the supervisor's grant when that record says so.
 """
 
 import hashlib
@@ -34,11 +37,12 @@ from cardagent.agents.guards import (
     mask_tokens,
     raw_pii_found,
 )
-from cardagent.agents.templates import POLICY_SOURCES, render, suggestions
+from cardagent.agents.templates import POLICY_SOURCES, reason_label, render, suggestions
+from cardagent.bank.confirmations import ConfirmationService
 from cardagent.bank.db import BankDB
 from cardagent.bank.registry import ToolRegistry, ToolResult
 from cardagent.bank.sessions import Session, utc_now
-from cardagent.bank.tools import ApprovalGrant, ToolContext
+from cardagent.bank.tools import ApprovalGrant, ToolContext, WriteAuthorization
 from cardagent.config import Settings
 from cardagent.llm.client import LLM
 from cardagent.pii.vault import TokenVault
@@ -127,6 +131,7 @@ def build_graph(deps: Deps, checkpointer=None):
     s = deps.settings
     P = prompts.get(s.prompt_version)  # versioned prompt set (v1.0 / v1.1)
     read_only = deps.registry.read_only()
+    confirmations = ConfirmationService(deps.db, deps.clock)
 
     def read(tool: str, args: dict, ctx: ToolContext) -> tuple[ToolResult, bool]:
         """A READ tool call with one deterministic retry on a transient outage.
@@ -570,21 +575,36 @@ def build_graph(deps: Deps, checkpointer=None):
                 out["route_reason"] = "revisions_exhausted"
         elif verdict == "block":
             out["route_reason"] = "critic_blocked"
-        elif requires and is_write:
+        elif is_write:
+            # A1, graduated oversight: every write waits for the card holder's click. A
+            # risky one also waits for a supervisor; the record carries that flag, so the
+            # tool enforces it too, whatever the graph does.
             now = deps.clock()
-            out["approval_request"] = {
-                "idempotency_key": proposed["idempotency_key"],
+            key = proposed["idempotency_key"]
+            digest = hashlib.sha256(f"{state['thread_id']}|{key}".encode()).hexdigest()
+            out["confirmation_request"] = {
+                "confirmation_id": "conf-" + digest[:24],
+                "idempotency_key": key,
+                "card_token": proposed["args"]["card_token"],
+                "reason": proposed["args"]["reason"],
+                "requires_supervisor": risk > s.hitl_risk_threshold,
                 "requested_at": now.isoformat(),
-                "expires_at": (now + timedelta(minutes=s.approval_ttl_minutes)).isoformat(),
+                "expires_at": (now + timedelta(minutes=s.confirmation_ttl_minutes)).isoformat(),
             }
-            # The customer hears right away what is happening, without claiming it is done.
-            pending = mask_tokens(
-                render("approval_pending", state["language"], card=proposed["args"]["card_token"]),
+            # The customer hears what is about to happen and that only the button does it.
+            prompt = mask_tokens(
+                render(
+                    "confirm_prompt",
+                    state["language"],
+                    card=proposed["args"]["card_token"],
+                    reason=reason_label(proposed["args"]["reason"], state["language"]),
+                    minutes=str(s.confirmation_ttl_minutes),
+                ),
                 state["thread_id"],
                 deps.vault,
             )
-            out["interim_response"] = pending
-            out["messages"] = [{"role": "assistant", "content": pending}]
+            out["interim_response"] = prompt
+            out["messages"] = [{"role": "assistant", "content": prompt}]
         elif requires:
             out["route_reason"] = "high_risk_answer"
         out["audit_trail"] = [
@@ -606,11 +626,96 @@ def build_graph(deps: Deps, checkpointer=None):
             return "escalate"
         if state["verdict"] == "revise":
             return "policy_rag" if state.get("intent") == Intent.CARD_POLICY else "executor"
-        if state.get("approval_request"):
-            return "human_approval"
+        if state.get("confirmation_request"):
+            return "confirm"
         return "respond"
 
-    # --- HITL -------------------------------------------------------------------------
+    # --- the customer's confirmation (A1) ----------------------------------------------
+
+    def confirm(state: GraphState) -> dict:
+        """Pause for the card holder's click. The record in the database is the truth: the
+        resume payload is only a wake-up call, and a payload that says "confirmed" while the
+        record is still pending counts as cancelled."""
+        req, lang = state["confirmation_request"], state["language"]
+        # Idempotent on purpose: this node re-runs from the top when the graph resumes.
+        confirmations.open(
+            confirmation_id=req["confirmation_id"],
+            thread_id=state["thread_id"],
+            customer_id=state["customer_id"],
+            idempotency_key=req["idempotency_key"],
+            card_token=req["card_token"],
+            reason=req["reason"],
+            requires_supervisor=req["requires_supervisor"],
+            ttl_minutes=s.confirmation_ttl_minutes,
+        )
+        interrupt(
+            {
+                "type": "confirm_required",
+                "thread_id": state["thread_id"],
+                "confirmation_id": req["confirmation_id"],
+                "card": mask_tokens(req["card_token"], state["thread_id"], deps.vault),
+                "reason": req["reason"],
+                "reason_label": reason_label(req["reason"], lang),
+                "requires_supervisor": req["requires_supervisor"],
+                "expires_at": req["expires_at"],
+            }
+        )
+        now = deps.clock()
+        record = confirmations.get(req["confirmation_id"])
+        note = ""
+        if record is None:
+            outcome, note = "cancelled", "no confirmation record"
+        elif record.status == "confirmed" and record.decided_by == state["customer_id"]:
+            outcome = "confirmed"
+        elif record.status == "expired" or (
+            record.status == "pending" and now >= record.expires_at
+        ):
+            outcome, note = "expired", "confirmation lapsed"
+        else:
+            outcome = "cancelled"
+            if record.status == "pending":
+                note = "resumed without the customer's decision"
+        decision = {
+            "decision": outcome,
+            "decided_by": record.decided_by if record else None,
+            "note": note,
+            "ts": now.isoformat(),
+        }
+        out: dict[str, Any] = {
+            "customer_decision": decision,
+            "audit_trail": [
+                event(
+                    deps,
+                    "confirm",
+                    "decided",
+                    decision=outcome,
+                    requires_supervisor=req["requires_supervisor"],
+                    note=note,
+                )
+            ],
+        }
+        if outcome == "confirmed" and req["requires_supervisor"]:
+            out["approval_request"] = {
+                "idempotency_key": req["idempotency_key"],
+                "requested_at": now.isoformat(),
+                "expires_at": (now + timedelta(minutes=s.approval_ttl_minutes)).isoformat(),
+            }
+            # Confirmed, but risky: the customer hears that a supervisor still has to agree.
+            pending = mask_tokens(
+                render("approval_pending", lang, card=req["card_token"]),
+                state["thread_id"],
+                deps.vault,
+            )
+            out["interim_response"] = pending
+            out["messages"] = [{"role": "assistant", "content": pending}]
+        return out
+
+    def route_confirm(state: GraphState) -> str:
+        if state["customer_decision"]["decision"] != "confirmed":
+            return "respond"
+        return "human_approval" if state.get("approval_request") else "tool_executor"
+
+    # --- HITL (the supervisor, for risky writes) --------------------------------------
 
     def human_approval(state: GraphState) -> dict:
         # Re-executed from the top when resumed: nothing before interrupt() has effects.
@@ -684,8 +789,15 @@ def build_graph(deps: Deps, checkpointer=None):
         """Deterministic: no LLM. Runs exactly the approved action."""
         proposed = state["proposed_action"]
         args = {**proposed["args"], "idempotency_key": proposed["idempotency_key"]}
-        grant = ApprovalGrant(**state["approval_grant"])
-        r = deps.registry.invoke(proposed["tool"], args, tool_context(state, deps), approval=grant)
+        authorization = WriteAuthorization(
+            confirmation_id=state["confirmation_request"]["confirmation_id"],
+            approval=ApprovalGrant(**state["approval_grant"])
+            if state.get("approval_grant")
+            else None,
+        )
+        r = deps.registry.invoke(
+            proposed["tool"], args, tool_context(state, deps), authorization=authorization
+        )
         result = {"executed": r.ok, "verified": False, "output": r.data, "error_code": r.error_code}
         return {
             "action_result": result,
@@ -793,6 +905,11 @@ def build_graph(deps: Deps, checkpointer=None):
                 "blocked",
                 sources=POLICY_SOURCES.get(key),
             )
+        customer = state.get("customer_decision")
+        if customer and customer["decision"] != "confirmed":
+            key = "confirm_expired" if customer["decision"] == "expired" else "confirm_cancelled"
+            text = render(key, lang, card=state["proposed_action"]["args"]["card_token"])
+            return finish(state, "respond", text, "cancelled")
         if human and human["decision"] != Decision.APPROVED.value:
             key = (
                 "action_expired"
@@ -857,6 +974,7 @@ def build_graph(deps: Deps, checkpointer=None):
         ("executor_tools", executor_tools),
         ("policy_rag", policy_rag),
         ("critic", critic),
+        ("confirm", confirm),
         ("human_approval", human_approval),
         ("tool_executor", tool_executor),
         ("verify", verify),
@@ -873,7 +991,10 @@ def build_graph(deps: Deps, checkpointer=None):
     g.add_conditional_edges("executor_tools", route_tools, ["executor", "escalate", "reject"])
     g.add_conditional_edges("policy_rag", route_rag, ["critic", "escalate"])
     g.add_conditional_edges(
-        "critic", route_critic, ["executor", "policy_rag", "human_approval", "respond", "escalate"]
+        "critic", route_critic, ["executor", "policy_rag", "confirm", "respond", "escalate"]
+    )
+    g.add_conditional_edges(
+        "confirm", route_confirm, ["human_approval", "tool_executor", "respond"]
     )
     g.add_conditional_edges("human_approval", route_approval, ["tool_executor", "respond"])
     g.add_edge("tool_executor", "verify")
