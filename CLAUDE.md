@@ -166,7 +166,7 @@ requires_supervisor     = is_write(proposed_action) and risk_score > 0.7  # whic
 - Node sequence: `triage` → `executor` (explicit ReAct, read tools only, at most 5 iterations) or `policy_rag` → `critic` (at most 2 revise loops) → `human_approval` (`interrupt()`) → `tool_executor` → `verify` → `respond`.
 - Two separate exits:
   - `reject`: safe refusal for injection or out-of-scope requests.
-  - `escalate`: builds the structured `HandoffPayload` (request, verified facts, actions taken, evidence, open questions).
+  - `escalate`: builds the structured `HandoffPayload` (request, verified facts, actions taken, evidence, open questions). Since A4 each verified fact is a `VerifiedFact` carrying the `call_id` (`<turn_id>/<tool_use id>`) of the `tool_called` audit event that read it; the customer's sanitized statements are kept apart in `customer_statements`; `priority` is `urgent` (set by code) when a block couldn't be completed.
 - Fallback rules (the full diagram is in ARCHITECTURE.md §4):
   - Every node fails **closed**: invalid critic output → `block`; failure to verify → `escalate`.
   - If triage's LLM call fails twice, the learned TF-IDF classifier takes over.

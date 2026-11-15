@@ -1,7 +1,7 @@
 """Records produced by deterministic parts of the system (HITL, tools, audit, handoff)."""
 
 from datetime import UTC, datetime
-from typing import Any
+from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -47,15 +47,32 @@ class UsageRecord(Record):
     latency_ms: float = 0.0
 
 
+class VerifiedFact(Record):
+    """One fact a tool read, tied to the call that read it. `call_id` is the same id the
+    `tool_called` audit event carries, so an advisor can trace the fact to its evidence."""
+
+    fact: str  # tokens and last-4 digits only
+    tool: str
+    call_id: str  # "<turn_id>/<tool_use id>"
+    ts: str
+
+
 class HandoffPayload(Record):
-    """What a human agent receives on escalation: facts, not a raw transcript dump."""
+    """What a human agent receives on escalation: facts, not a raw transcript dump.
+
+    Verified facts come from tool calls and point at them; the customer's own words are
+    kept apart in `customer_statements`, never mixed with the facts; `priority` is set by
+    code (`urgent` when a card may still be exposed because a block couldn't be completed).
+    """
 
     case_id: str = ""  # shown to the customer so they can refer to it
     reason: str
     customer_request: str  # sanitized
     intent: Intent | None
     language: Language
-    verified_facts: list[str] = Field(default_factory=list)
+    verified_facts: list[VerifiedFact] = Field(default_factory=list)
     actions_taken: list[str] = Field(default_factory=list)
     evidence: list[str] = Field(default_factory=list)
     open_questions: list[str] = Field(default_factory=list)
+    customer_statements: list[str] = Field(default_factory=list)  # sanitized, last few
+    priority: Literal["normal", "urgent"] = "normal"

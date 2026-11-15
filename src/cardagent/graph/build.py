@@ -55,7 +55,7 @@ from cardagent.schemas.agents import (
     TriageOutput,
 )
 from cardagent.schemas.enums import Decision, Intent
-from cardagent.schemas.records import HandoffPayload
+from cardagent.schemas.records import HandoffPayload, VerifiedFact
 from cardagent.schemas.state import GraphState
 
 EXECUTOR_INTENTS = {Intent.CARD_STATUS, Intent.CARD_TRANSACTIONS, Intent.CARD_BLOCK}
@@ -353,6 +353,7 @@ def build_graph(deps: Deps, checkpointer=None):
         route_reason = None
         for call in state["pending_tool_calls"]:
             retried = False
+            call_id = f"{state['turn_id']}/{call['id']}"  # ties facts to their audit event
             if "invalid" in call:
                 ok, content = False, {"error": call["invalid"]}
             else:
@@ -361,7 +362,13 @@ def build_graph(deps: Deps, checkpointer=None):
                 content = r.data if r.ok else {"error": r.error_code, "detail": r.error}
                 if r.ok:
                     read_results.append(
-                        {"tool": call["name"], "input": call["input"], "output": r.data}
+                        {
+                            "tool": call["name"],
+                            "input": call["input"],
+                            "output": r.data,
+                            "call_id": call_id,
+                            "ts": deps.clock().isoformat(),
+                        }
                     )
                 elif r.error_code == "tool_unavailable":
                     failures += 1
@@ -372,6 +379,7 @@ def build_graph(deps: Deps, checkpointer=None):
                     deps,
                     "executor_tools",
                     "tool_called",
+                    call_id=call_id,
                     tool=call["name"],
                     input=call["input"],
                     ok=ok,
@@ -942,6 +950,14 @@ def build_graph(deps: Deps, checkpointer=None):
         digest = hashlib.sha256(f"{state['thread_id']}|{state['turn_id']}".encode())
         case_id = "CRD-" + digest.hexdigest()[:6].upper()
         result = state.get("action_result")
+        # Code decides the priority: a block the system couldn't complete leaves a card that
+        # may still be exposed, so a person should take that case first.
+        unfinished_block = state.get("intent") == Intent.CARD_BLOCK and reason in (
+            "action_not_verified",
+            "tool_failure",
+            "revisions_exhausted",
+            "critic_blocked",
+        )
         handoff = HandoffPayload(
             case_id=case_id,
             reason=reason,
@@ -949,9 +965,12 @@ def build_graph(deps: Deps, checkpointer=None):
             intent=state.get("intent"),
             language=state["language"] if state["language"] in ("es", "pt", "other") else "es",
             verified_facts=[
-                json.dumps(
-                    {"tool": r["tool"], "output": r["output"]}, ensure_ascii=False, default=str
-                )[:500]
+                VerifiedFact(
+                    fact=json.dumps(r["output"], ensure_ascii=False, default=str)[:500],
+                    tool=r["tool"],
+                    call_id=r.get("call_id", ""),
+                    ts=r.get("ts", ""),
+                )
                 for r in state.get("read_results", [])
             ],
             actions_taken=[json.dumps(result, default=str)] if result else [],
@@ -961,6 +980,10 @@ def build_graph(deps: Deps, checkpointer=None):
                 + ([state["critic_feedback"]] if state.get("critic_feedback") else [])
                 + state.get("safety_violations", [])
             ),
+            customer_statements=[
+                m["content"] for m in state.get("messages", []) if m["role"] == "user"
+            ][-3:],
+            priority="urgent" if unfinished_block else "normal",
         ).model_dump(mode="json")
         text = render("escalated", state["language"], case_id=case_id)
         return finish(state, "escalate", text, "escalated", route_reason=reason, escalation=handoff)

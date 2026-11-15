@@ -290,6 +290,7 @@ def test_outage_during_execution_is_never_reported_as_done(db, clock):  # noqa: 
     assert state["route_reason"] == "action_not_verified"
     assert "Listo" not in state["final_response"]
     assert state["escalation"]["actions_taken"]  # the advisor sees what was attempted
+    assert state["escalation"]["priority"] == "urgent"  # the card may still be exposed
 
 
 def test_audit_trail_never_contains_raw_card_numbers(db, clock):  # noqa: F811
@@ -443,6 +444,13 @@ def test_unrecognized_charge_escalates_with_verified_facts(db, clock):  # noqa: 
     handoff = state["escalation"]
     assert state["route_reason"] == "executor_escalated"
     assert handoff["verified_facts"] and "¿monto exacto?" in handoff["open_questions"]
+    # A4: every verified fact points at the audit event of the call that read it, and the
+    # customer's own words stay apart from the facts.
+    called = {e["payload"]["call_id"] for e in state["audit_trail"] if e["event"] == "tool_called"}
+    assert {f["call_id"] for f in handoff["verified_facts"]} <= called
+    assert all(f["tool"] and f["ts"] for f in handoff["verified_facts"])
+    assert handoff["customer_statements"] == [f"no reconozco un cargo en {token}"]
+    assert handoff["priority"] == "normal"
 
 
 def flaky(failures: int, tool: str = "*"):

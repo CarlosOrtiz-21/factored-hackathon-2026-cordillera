@@ -70,6 +70,9 @@ def system_outcome(values: dict) -> str:
         return node
     if node != "respond":
         return "error"
+    customer = values.get("customer_decision")
+    if customer and customer.get("decision") != "confirmed":  # the customer's click said no
+        return "cancelled"
     result = values.get("action_result")
     if result and result.get("verified"):
         return "block"

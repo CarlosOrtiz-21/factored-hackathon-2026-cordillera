@@ -155,7 +155,11 @@ function StateView({ s }: { s: ThreadState }) {
         </Block>
       )}
       {s.escalation && (
-        <Block title="Traspaso a un asesor (handoff)">
+        <Block
+          title={`Traspaso a un asesor (handoff) · prioridad ${String(s.escalation.priority ?? "normal")}`}
+          tone={s.escalation.priority === "urgent" ? "danger" : "normal"}
+        >
+          <Facts facts={s.escalation.verified_facts} />
           <Json value={s.escalation} />
         </Block>
       )}
@@ -236,6 +240,32 @@ function StateView({ s }: { s: ThreadState }) {
         </Block>
       )}
     </div>
+  );
+}
+
+/** A4: each verified fact next to the tool call that read it (call_id matches the audit trail). */
+function Facts({ facts }: { facts: unknown }) {
+  if (!Array.isArray(facts) || facts.length === 0) return null;
+  const rows = facts as { fact: string; tool: string; call_id: string; ts: string }[];
+  return (
+    <table className="mb-2 w-full text-left text-xs">
+      <thead className="text-slate-500">
+        <tr>
+          <th className="py-1 pr-3 font-medium">Hecho verificado</th>
+          <th className="py-1 pr-3 font-medium">Herramienta</th>
+          <th className="py-1 font-medium">Llamada</th>
+        </tr>
+      </thead>
+      <tbody>
+        {rows.map((f) => (
+          <tr key={f.call_id + f.tool} className="border-t border-slate-100 align-top">
+            <td className="max-w-xl py-1 pr-3 font-mono break-all">{f.fact}</td>
+            <td className="py-1 pr-3 font-mono">{f.tool}</td>
+            <td className="py-1 font-mono text-andes-800">{f.call_id}</td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
   );
 }
 
