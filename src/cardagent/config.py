@@ -24,7 +24,7 @@ class Settings(BaseSettings):
     executor_model: str = "claude-sonnet-5"
     rag_model: str = "claude-sonnet-5"
     critic_model: str = "claude-sonnet-5"
-    prompt_version: str = "v1.2"  # agents/prompts.py; v1.0 kept for the before/after compare
+    prompt_version: str = "v1.3"  # agents/prompts.py; v1.0 kept for the before/after compare
 
     # Dataset source: read-only S3 bucket shared with hackathon participants.
     # Keys come from .env only; they must never reach the public repo.

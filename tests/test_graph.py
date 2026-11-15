@@ -453,6 +453,44 @@ def test_unrecognized_charge_escalates_with_verified_facts(db, clock):  # noqa: 
     assert handoff["priority"] == "normal"
 
 
+def test_an_invented_figure_is_sent_back_for_revision(db, clock):  # noqa: F811
+    """A2: the draft states a credit limit the evidence doesn't hold. The critic approved
+    it; code forces a revision with the exact figure, and the second draft goes out."""
+    llm = (
+        FakeLLM()
+        .add("triage", triage("card_status"))
+        .add("executor", {"tool_calls": [("list_cards", {})]})
+        .add("executor", {"text": "Tu tarjeta <TARJETA_1> tiene un cupo de USD 9.999,00."})
+        .add("critic", critic())  # the model missed it
+        .add("executor", {"tool_calls": [("list_cards", {})]})
+        .add("executor", {"text": "Tu tarjeta <TARJETA_1> está activa."})
+        .add("critic", critic())
+    )
+    system = System(db, clock, llm)
+    system.card_token()  # P1 becomes <TARJETA_1>, as when the customer typed its number
+    state = system.send("¿cuánto cupo tengo?")
+    assert state["final_response"] == "Tu tarjeta •••• 4060 está activa."
+    reviews = [e for e in state["audit_trail"] if e["event"] == "reviewed"]
+    assert reviews[0]["payload"]["verdict"] == "revise"
+    assert "unverified_figure:9.999,00" in reviews[0]["payload"]["violations"]
+    # the model was told which figure, so it could fix it instead of guessing again
+    executor_inputs = [json.dumps(m, ensure_ascii=False) for a, m in llm.calls if a == "executor"]
+    assert any("9.999,00" in x and "not in the evidence" in x for x in executor_inputs)
+
+
+def test_repeated_invented_figures_escalate_instead_of_going_out(db, clock):  # noqa: F811
+    llm = FakeLLM().add("triage", triage("card_status"))
+    for _ in range(3):  # first draft + 2 revisions, all with an invented year
+        llm.add("executor", {"tool_calls": [("list_cards", {})]})
+        llm.add("executor", {"text": "Tu tarjeta <TARJETA_1> vence en 2099."})
+        llm.add("critic", critic())
+    system = System(db, clock, llm)
+    state = system.send("¿cuándo vence mi tarjeta?")
+    assert state["route_reason"] == "revisions_exhausted"
+    assert "2099" not in state["final_response"]
+    assert state["escalation"]["case_id"].startswith("CRD-")
+
+
 def flaky(failures: int, tool: str = "*"):
     """Fault injector: the first `failures` matching calls raise a transient outage."""
     seen = {"n": 0}

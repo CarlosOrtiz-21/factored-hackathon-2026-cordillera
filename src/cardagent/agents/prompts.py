@@ -18,7 +18,7 @@ from cardagent.brand import BRAND
 
 BRAND_BANK, BRAND_ASSISTANT = BRAND.bank, BRAND.assistant
 
-LATEST = "v1.2"
+LATEST = "v1.3"
 
 TOKENS_NOTE = (
     "Personal data in messages has been replaced by tokens such as <TARJETA_1>, <CUENTA_1>, "
@@ -193,6 +193,12 @@ CARD_REFERENCE_RULE = """
 Card references (overrides the formatting example above): write the card kind plus its token, e.g. "tu tarjeta de crédito <TARJETA_1>" / "seu cartão de crédito <TARJETA_1>". The system shows it to the customer as "•••• 1382". Never write card digits yourself.
 """
 
+# v1.3: the figures rule. The reply check in the critic enforces it in code; the prompt
+# makes the first draft right more often, which saves a revision round trip.
+FIGURES_RULE = """
+Figures: every amount, date, limit, balance, and group of digits you write must appear in the evidence (a tool result or a cited section). Keep the same digits as the evidence; only separators may change. If a value is missing, say it isn't recorded. Never estimate, round into a different number, or infer a figure.
+"""
+
 PROMPTS = {
     "v1.0": PromptSet("v1.0", TRIAGE_SYSTEM, EXECUTOR_SYSTEM, RAG_SYSTEM, CRITIC_SYSTEM),
     "v1.1": PromptSet(
@@ -203,6 +209,13 @@ PROMPTS = {
         TRIAGE_SYSTEM,
         EXECUTOR_SYSTEM_V1_1 + CARD_REFERENCE_RULE,
         RAG_SYSTEM_V1_1 + CARD_REFERENCE_RULE,
+        CRITIC_SYSTEM_V1_1 + CARD_REFERENCE_RULE,
+    ),
+    "v1.3": PromptSet(
+        "v1.3",
+        TRIAGE_SYSTEM,
+        EXECUTOR_SYSTEM_V1_1 + CARD_REFERENCE_RULE + FIGURES_RULE,
+        RAG_SYSTEM_V1_1 + CARD_REFERENCE_RULE + FIGURES_RULE,
         CRITIC_SYSTEM_V1_1 + CARD_REFERENCE_RULE,
     ),
 }

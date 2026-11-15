@@ -80,6 +80,46 @@ def guess_language(text: str) -> str:
     return "pt" if len(_PT_HINTS.findall(text)) >= 1 else "es"
 
 
+# --- A2: figures must come from the evidence --------------------------------------------
+# A number as a customer would write it: "1.250,00", "419,13", "2026", "1382", "5".
+_NUMBER = re.compile(r"\d[\d.,]*\d|\d")
+
+
+def _number_forms(token: str) -> set[str]:
+    """Digit-only forms of a written number, so separators and decimals don't matter:
+    "1.250,00" -> {"125000", "1250"}; "419,13" -> {"41913", "419"}; "2026" -> {"2026"}."""
+    forms = {re.sub(r"\D", "", token)}
+    tail = re.fullmatch(r"(.*?)[.,](\d{1,2})", token)  # a 1-2 digit tail reads as decimals
+    if tail:
+        forms.add(re.sub(r"\D", "", tail.group(1)))
+    return {f for f in forms if f}
+
+
+def evidence_numbers(*texts: str) -> set[str]:
+    """Every number form that appears in the evidence (tool outputs, cited sections, the
+    customer's own message, fixed brand facts)."""
+    out: set[str] = set()
+    for text in texts:
+        for token in _NUMBER.findall(text or ""):
+            out |= _number_forms(token)
+    return out
+
+
+def unverified_figures(draft: str, evidence: set[str], min_digits: int = 3) -> list[str]:
+    """Figures in a draft that appear nowhere in the evidence: an amount, a date, a limit,
+    last digits. Short counts ("tienes 6 tarjetas") are allowed, since a count is derived,
+    not read. This is the whitelist Faro's digit blacklist lacks: a figure is fine only
+    because a tool or a document said it."""
+    bad: list[str] = []
+    for token in _NUMBER.findall(draft or ""):
+        forms = _number_forms(token)
+        if all(len(f) < min_digits for f in forms):
+            continue
+        if not forms & evidence:
+            bad.append(token)
+    return bad
+
+
 def raw_pii_found(text: str) -> list[str]:
     return [name for name, rx in _RAW_PII.items() if rx.search(text)]
 

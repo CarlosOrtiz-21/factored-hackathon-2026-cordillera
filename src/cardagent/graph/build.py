@@ -33,9 +33,11 @@ from cardagent.agents import prompts
 from cardagent.agents.guards import (
     IntentFallback,
     detect_injection,
+    evidence_numbers,
     guess_language,
     mask_tokens,
     raw_pii_found,
+    unverified_figures,
 )
 from cardagent.agents.templates import POLICY_SOURCES, reason_label, render, suggestions
 from cardagent.bank.confirmations import ConfirmationService
@@ -43,6 +45,7 @@ from cardagent.bank.db import BankDB
 from cardagent.bank.registry import ToolRegistry, ToolResult
 from cardagent.bank.sessions import Session, utc_now
 from cardagent.bank.tools import ApprovalGrant, ToolContext, WriteAuthorization
+from cardagent.brand import BRAND
 from cardagent.config import Settings
 from cardagent.llm.client import LLM
 from cardagent.pii.vault import TokenVault
@@ -506,6 +509,11 @@ def build_graph(deps: Deps, checkpointer=None):
             if state.get("intent") != Intent.CARD_POLICY
             else json.dumps(state.get("rag_context", []), ensure_ascii=False)
         )
+        # A2: every figure in the draft must come from the evidence. Code decides, and
+        # the model gets the exact figures back so one revision can fix them.
+        allowed = evidence_numbers(evidence, state["sanitized_input"], BRAND.phone)
+        figures = [] if proposed else unverified_figures(draft, allowed)
+        violations += [f"unverified_figure:{f}" for f in figures]
         proposed_json = json.dumps(proposed, ensure_ascii=False) if proposed else "none"
         # With a proposed action the customer never sees the draft: they get a fixed
         # "requested, pending supervisor approval" message. Review the ACTION, not wording.
@@ -549,12 +557,19 @@ def build_graph(deps: Deps, checkpointer=None):
             verdict, risk, feedback = v.verdict.value, v.risk_score, v.feedback
             approved = v.approved_response
             violations += v.safety_violations
+        if figures:
+            feedback = (feedback + " " if feedback else "") + (
+                f"Figures not in the evidence: {', '.join(figures)}. Use only figures the "
+                "evidence holds, or say the value isn't recorded."
+            )
         if any(x.startswith(HARD_VIOLATIONS) for x in violations):
             verdict = "block"
         elif verdict == "approve" and any(
             x.startswith(("invalid_citation", "answer_without")) for x in violations
         ):
             verdict, feedback = "revise", feedback + " Cite only the provided chunk_ids."
+        elif verdict == "approve" and figures:
+            verdict = "revise"  # the model approved a figure the evidence doesn't hold
 
         # THE HITL RULE, in code: any write, or a risky answer, needs a human.
         is_write = bool(proposed) and deps.registry.is_write(proposed["tool"])

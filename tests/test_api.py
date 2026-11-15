@@ -123,7 +123,7 @@ def confirm(client, headers, thread_id, events, decision="confirmed"):
 
 def test_health(env):
     client, *_ = env
-    assert client.get("/api/health").json()["prompt_version"] == "v1.2"
+    assert client.get("/api/health").json()["prompt_version"] == "v1.3"
 
 
 @pytest.mark.parametrize(("customer", "code"), [("C1", "000000"), ("C999", CODE), ("C3", CODE)])
