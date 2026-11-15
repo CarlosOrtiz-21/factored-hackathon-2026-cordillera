@@ -1,0 +1,445 @@
+{
+  "run_id": "20261115-010057",
+  "kind": "live (real Anthropic API calls)",
+  "golden_version": "v1",
+  "models": {
+    "triage": "claude-haiku-4-5",
+    "executor": "claude-sonnet-5",
+    "policy_rag": "claude-sonnet-5",
+    "critic": "claude-sonnet-5"
+  },
+  "prompt_version": "v1.2",
+  "cases_planned": 2,
+  "stopped": null,
+  "spent_usd": 0.04,
+  "systems": {
+    "system": {
+      "overall": {
+        "cases": 2,
+        "correct": {
+          "n": 2,
+          "of": 2,
+          "rate": 1.0
+        },
+        "outcome_accuracy": {
+          "n": 2,
+          "of": 2,
+          "rate": 1.0
+        },
+        "safe_automated_resolution": {
+          "n": 2,
+          "of": 2,
+          "rate": 1.0
+        },
+        "automation_attempted": {
+          "n": 2,
+          "of": 2,
+          "rate": 1.0
+        },
+        "containment": {
+          "n": 2,
+          "of": 2,
+          "rate": 1.0
+        },
+        "missed_escalations": {
+          "n": 0,
+          "of": 0,
+          "rate": null
+        },
+        "unnecessary_escalations": {
+          "n": 0,
+          "of": 2,
+          "rate": 0.0
+        },
+        "unsafe_outcomes": {
+          "n": 0,
+          "of": 2,
+          "rate": 0.0
+        },
+        "unsafe_by_type": {},
+        "quality_flags": {},
+        "writes": 0,
+        "hitl_coverage": {
+          "n": 0,
+          "of": 0,
+          "rate": null
+        },
+        "injection_resistance": {
+          "n": 0,
+          "of": 0,
+          "rate": null
+        },
+        "correct_abstention": {
+          "n": 0,
+          "of": 0,
+          "rate": null
+        },
+        "latency_ms": {
+          "p50": 6536,
+          "p95": 7256
+        },
+        "cost_usd": {
+          "total": 0.04,
+          "per_case": 0.02,
+          "per_safe_resolution": 0.02
+        }
+      },
+      "by_language": {
+        "es": {
+          "cases": 1,
+          "correct": {
+            "n": 1,
+            "of": 1,
+            "rate": 1.0
+          },
+          "outcome_accuracy": {
+            "n": 1,
+            "of": 1,
+            "rate": 1.0
+          },
+          "safe_automated_resolution": {
+            "n": 1,
+            "of": 1,
+            "rate": 1.0
+          },
+          "automation_attempted": {
+            "n": 1,
+            "of": 1,
+            "rate": 1.0
+          },
+          "containment": {
+            "n": 1,
+            "of": 1,
+            "rate": 1.0
+          },
+          "missed_escalations": {
+            "n": 0,
+            "of": 0,
+            "rate": null
+          },
+          "unnecessary_escalations": {
+            "n": 0,
+            "of": 1,
+            "rate": 0.0
+          },
+          "unsafe_outcomes": {
+            "n": 0,
+            "of": 1,
+            "rate": 0.0
+          },
+          "unsafe_by_type": {},
+          "quality_flags": {},
+          "writes": 0,
+          "hitl_coverage": {
+            "n": 0,
+            "of": 0,
+            "rate": null
+          },
+          "injection_resistance": {
+            "n": 0,
+            "of": 0,
+            "rate": null
+          },
+          "correct_abstention": {
+            "n": 0,
+            "of": 0,
+            "rate": null
+          },
+          "latency_ms": {
+            "p50": 7336,
+            "p95": 7336
+          },
+          "cost_usd": {
+            "total": 0.0204,
+            "per_case": 0.0204,
+            "per_safe_resolution": 0.0204
+          }
+        },
+        "pt": {
+          "cases": 1,
+          "correct": {
+            "n": 1,
+            "of": 1,
+            "rate": 1.0
+          },
+          "outcome_accuracy": {
+            "n": 1,
+            "of": 1,
+            "rate": 1.0
+          },
+          "safe_automated_resolution": {
+            "n": 1,
+            "of": 1,
+            "rate": 1.0
+          },
+          "automation_attempted": {
+            "n": 1,
+            "of": 1,
+            "rate": 1.0
+          },
+          "containment": {
+            "n": 1,
+            "of": 1,
+            "rate": 1.0
+          },
+          "missed_escalations": {
+            "n": 0,
+            "of": 0,
+            "rate": null
+          },
+          "unnecessary_escalations": {
+            "n": 0,
+            "of": 1,
+            "rate": 0.0
+          },
+          "unsafe_outcomes": {
+            "n": 0,
+            "of": 1,
+            "rate": 0.0
+          },
+          "unsafe_by_type": {},
+          "quality_flags": {},
+          "writes": 0,
+          "hitl_coverage": {
+            "n": 0,
+            "of": 0,
+            "rate": null
+          },
+          "injection_resistance": {
+            "n": 0,
+            "of": 0,
+            "rate": null
+          },
+          "correct_abstention": {
+            "n": 0,
+            "of": 0,
+            "rate": null
+          },
+          "latency_ms": {
+            "p50": 5736,
+            "p95": 5736
+          },
+          "cost_usd": {
+            "total": 0.0197,
+            "per_case": 0.0197,
+            "per_safe_resolution": 0.0197
+          }
+        }
+      },
+      "by_category": {
+        "normal_block": {
+          "cases": 2,
+          "correct": {
+            "n": 2,
+            "of": 2,
+            "rate": 1.0
+          },
+          "outcome_accuracy": {
+            "n": 2,
+            "of": 2,
+            "rate": 1.0
+          },
+          "safe_automated_resolution": {
+            "n": 2,
+            "of": 2,
+            "rate": 1.0
+          },
+          "automation_attempted": {
+            "n": 2,
+            "of": 2,
+            "rate": 1.0
+          },
+          "containment": {
+            "n": 2,
+            "of": 2,
+            "rate": 1.0
+          },
+          "missed_escalations": {
+            "n": 0,
+            "of": 0,
+            "rate": null
+          },
+          "unnecessary_escalations": {
+            "n": 0,
+            "of": 2,
+            "rate": 0.0
+          },
+          "unsafe_outcomes": {
+            "n": 0,
+            "of": 2,
+            "rate": 0.0
+          },
+          "unsafe_by_type": {},
+          "quality_flags": {},
+          "writes": 0,
+          "hitl_coverage": {
+            "n": 0,
+            "of": 0,
+            "rate": null
+          },
+          "injection_resistance": {
+            "n": 0,
+            "of": 0,
+            "rate": null
+          },
+          "correct_abstention": {
+            "n": 0,
+            "of": 0,
+            "rate": null
+          },
+          "latency_ms": {
+            "p50": 6536,
+            "p95": 7256
+          },
+          "cost_usd": {
+            "total": 0.04,
+            "per_case": 0.02,
+            "per_safe_resolution": 0.02
+          }
+        }
+      },
+      "by_segment": {
+        "Plus": {
+          "cases": 1,
+          "correct": {
+            "n": 1,
+            "of": 1,
+            "rate": 1.0
+          },
+          "outcome_accuracy": {
+            "n": 1,
+            "of": 1,
+            "rate": 1.0
+          },
+          "safe_automated_resolution": {
+            "n": 1,
+            "of": 1,
+            "rate": 1.0
+          },
+          "automation_attempted": {
+            "n": 1,
+            "of": 1,
+            "rate": 1.0
+          },
+          "containment": {
+            "n": 1,
+            "of": 1,
+            "rate": 1.0
+          },
+          "missed_escalations": {
+            "n": 0,
+            "of": 0,
+            "rate": null
+          },
+          "unnecessary_escalations": {
+            "n": 0,
+            "of": 1,
+            "rate": 0.0
+          },
+          "unsafe_outcomes": {
+            "n": 0,
+            "of": 1,
+            "rate": 0.0
+          },
+          "unsafe_by_type": {},
+          "quality_flags": {},
+          "writes": 0,
+          "hitl_coverage": {
+            "n": 0,
+            "of": 0,
+            "rate": null
+          },
+          "injection_resistance": {
+            "n": 0,
+            "of": 0,
+            "rate": null
+          },
+          "correct_abstention": {
+            "n": 0,
+            "of": 0,
+            "rate": null
+          },
+          "latency_ms": {
+            "p50": 7336,
+            "p95": 7336
+          },
+          "cost_usd": {
+            "total": 0.0204,
+            "per_case": 0.0204,
+            "per_safe_resolution": 0.0204
+          }
+        },
+        "Student": {
+          "cases": 1,
+          "correct": {
+            "n": 1,
+            "of": 1,
+            "rate": 1.0
+          },
+          "outcome_accuracy": {
+            "n": 1,
+            "of": 1,
+            "rate": 1.0
+          },
+          "safe_automated_resolution": {
+            "n": 1,
+            "of": 1,
+            "rate": 1.0
+          },
+          "automation_attempted": {
+            "n": 1,
+            "of": 1,
+            "rate": 1.0
+          },
+          "containment": {
+            "n": 1,
+            "of": 1,
+            "rate": 1.0
+          },
+          "missed_escalations": {
+            "n": 0,
+            "of": 0,
+            "rate": null
+          },
+          "unnecessary_escalations": {
+            "n": 0,
+            "of": 1,
+            "rate": 0.0
+          },
+          "unsafe_outcomes": {
+            "n": 0,
+            "of": 1,
+            "rate": 0.0
+          },
+          "unsafe_by_type": {},
+          "quality_flags": {},
+          "writes": 0,
+          "hitl_coverage": {
+            "n": 0,
+            "of": 0,
+            "rate": null
+          },
+          "injection_resistance": {
+            "n": 0,
+            "of": 0,
+            "rate": null
+          },
+          "correct_abstention": {
+            "n": 0,
+            "of": 0,
+            "rate": null
+          },
+          "latency_ms": {
+            "p50": 5736,
+            "p95": 5736
+          },
+          "cost_usd": {
+            "total": 0.0197,
+            "per_case": 0.0197,
+            "per_safe_resolution": 0.0197
+          }
+        }
+      }
+    }
+  }
+}
