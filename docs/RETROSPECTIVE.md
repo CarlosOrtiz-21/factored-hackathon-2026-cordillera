@@ -26,7 +26,7 @@ Faro is the entry most like ours in spirit (card support, writes only on confirm
 
 ### 1. It turned the rubric into requirement IDs and cited them everywhere
 
-`docs/prerequisites.md` restates everything the organizers evaluate as stable IDs (SCP-01, CTL-04, EVL-13, OPS-11...). Every ADR, every doc, and every PR cites the IDs it covers. A judge can trace any requirement to the code and the evidence. We read the rules once, summarized them in CLAUDE.md, and never mapped the build back to them.
+`docs/prerequisites.md` restates everything the organizers evaluate as stable IDs (SCP‑01, CTL‑04, EVL‑13, OPS‑11..., in Faro's own numbering). Every ADR, every doc, and every PR cites the IDs it covers. A judge can trace any requirement to the code and the evidence. We read the rules once, summarized them in CLAUDE.md, and never mapped the build back to them.
 
 ### 2. It chose the workflow with a pre-registered rule, committed before the numbers
 

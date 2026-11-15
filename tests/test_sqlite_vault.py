@@ -1,5 +1,8 @@
 """Encrypted SQLite vault: same contract as the in-memory one, plus persistence and
-no personal data in clear on disk."""
+no personal data in clear on disk.
+
+Requirements: SEC-01, SEC-05, OPS-02
+"""
 
 import pytest
 from cryptography.fernet import Fernet, InvalidToken

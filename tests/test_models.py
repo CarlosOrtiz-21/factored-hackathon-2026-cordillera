@@ -1,6 +1,8 @@
 """Step 1c tests: dataset integrity, leakage controls, and metric helpers.
 
 They avoid downloading the e5 model or reading the warehouse, so they stay fast.
+
+Requirements: DML-03, DML-04, DML-05, PRB-03
 """
 
 import numpy as np

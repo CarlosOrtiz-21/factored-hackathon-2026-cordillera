@@ -1,4 +1,7 @@
-"""A2: the reply check. Figures a draft states must exist in the evidence (code, not prompt)."""
+"""A2: the reply check. Figures a draft states must exist in the evidence (code, not prompt).
+
+Requirements: CTL-06, AI-03
+"""
 
 import pytest
 

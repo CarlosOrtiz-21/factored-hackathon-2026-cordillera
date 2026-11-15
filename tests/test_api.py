@@ -1,4 +1,7 @@
-"""Step 4 tests: the HTTP API end to end, with FakeLLM and a SYNTHETIC bank."""
+"""Step 4 tests: the HTTP API end to end, with FakeLLM and a SYNTHETIC bank.
+
+Requirements: AI-01, AI-02, CTL-01, CTL-02, CTL-03, SEC-03, SEC-05, SEC-07, OPS-02
+"""
 
 import json
 import sqlite3

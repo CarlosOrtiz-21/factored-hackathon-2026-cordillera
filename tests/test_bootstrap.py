@@ -1,4 +1,7 @@
-"""Deployment bootstrap: data comes from a private dataset only when it is missing."""
+"""Deployment bootstrap: data comes from a private dataset only when it is missing.
+
+Requirements: OPS-03, SEC-06
+"""
 
 import pytest
 

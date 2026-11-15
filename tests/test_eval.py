@@ -3,6 +3,8 @@
 What must hold: the golden set is valid and held out; each case runs in a throwaway copy of
 the bank; the system's writes are human-approved and the baseline's are flagged; an expired
 session never reaches a model; and the deterministic checks catch unsafe replies.
+
+Requirements: EVL-01, EVL-02, EVL-03, EVL-06, EVL-07
 """
 
 import sqlite3

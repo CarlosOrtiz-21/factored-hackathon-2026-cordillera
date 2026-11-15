@@ -65,6 +65,7 @@ cd frontend && npm run typecheck && npm run build   # static site in frontend/ou
   - `data/bank.db`: SQLite for the mock API.
 
 Key documents:
+- [docs/requirements.md](docs/requirements.md): the hackathon's evaluation restated as stable IDs (SCP, PRB, AI, CTL, SEC, DML, EVL, OPS, DSN, DLV, DIM). Every test module cites the IDs it covers in a `Requirements:` docstring line; `tests/test_traceability.py` fails when an ID is uncited or a citation is stale. Cite our IDs only; another project's IDs in prose get a non-breaking hyphen (`EVL‑13`).
 - [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md): approved Phase 0 design. It is the **source of truth** for the state schema, the graph, decisions, the eval plan, and the roadmap.
 - [docs/PROJECT_PROMPT.md](docs/PROJECT_PROMPT.md): the original spec, in Spanish. ARCHITECTURE.md lists where the design deviates from it.
 

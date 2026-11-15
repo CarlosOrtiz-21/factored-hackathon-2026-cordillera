@@ -1,5 +1,7 @@
 # Architecture: AI-first card-support assistant with human-in-the-loop
 
+> Requirements: SCP-01, PRB-01, DSN-01, DSN-02, DSN-03, OPS-04, DIM-01 (see [requirements.md](requirements.md)).
+
 > Phase 0 decision record. Status: **approved 2026-09-25**. The original spec is [PROJECT_PROMPT.md](PROJECT_PROMPT.md) (Spanish); deviations from it are listed at the end with their justification.
 
 ## 0. Brand (fictional)

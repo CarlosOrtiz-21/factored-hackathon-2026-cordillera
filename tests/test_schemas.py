@@ -1,4 +1,7 @@
-"""Step 1 tests: the schemas reject anything outside the contract."""
+"""Step 1 tests: the schemas reject anything outside the contract.
+
+Requirements: CTL-07, DSN-03
+"""
 
 import pytest
 from pydantic import ValidationError

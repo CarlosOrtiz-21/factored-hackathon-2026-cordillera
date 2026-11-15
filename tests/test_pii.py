@@ -1,4 +1,7 @@
-"""Step 1 tests: PII detection, tokenization, and the vault."""
+"""Step 1 tests: PII detection, tokenization, and the vault.
+
+Requirements: SEC-01
+"""
 
 import pytest
 

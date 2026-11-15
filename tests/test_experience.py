@@ -1,4 +1,7 @@
-"""Customer-experience tests: Lía's voice, messages, and privacy of personalization."""
+"""Customer-experience tests: Lía's voice, messages, and privacy of personalization.
+
+Requirements: AI-05, AI-06, SCP-02, SCP-06
+"""
 
 import json
 import re

@@ -3,6 +3,8 @@
 datasets/injection_dev_v1.csv has attack families (ES/PT/EN) plus tricky benign messages
 ("olvidé las instrucciones", "compras sin autorización", "pagos sin contacto"). The intent
 classifier's 505 training utterances are all benign and must never trigger it.
+
+Requirements: SEC-04, EVL-06
 """
 
 import csv

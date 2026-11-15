@@ -6,6 +6,8 @@ support**, in **Spanish and Portuguese**: card status, recent transactions, card
 questions answered from documents, blocking a card (with human approval), and handing over
 to a human advisor when a case needs one.
 
+> Requirements map: [docs/requirements.md](docs/requirements.md) (SCP-06, DLV-01, DLV-02, AI-01).
+>
 > All customers and transactions come from the hackathon's **synthetic** LATAM Bank dataset,
 > and the policy corpus is **synthetic** too. No real money moves: there is no transfer tool.
 

@@ -1,4 +1,7 @@
-"""Model profiles: every agent config sends only parameters its model accepts."""
+"""Model profiles: every agent config sends only parameters its model accepts.
+
+Requirements: DSN-02
+"""
 
 import pytest
 

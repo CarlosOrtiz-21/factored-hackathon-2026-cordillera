@@ -2,6 +2,8 @@
 
 The fixture is written to a temp dir with the same layout as data/raw: snapshot CSVs for
 dimensions and hive-partitioned daily CSVs for facts.
+
+Requirements: DML-01, DML-02, PRB-02
 """
 
 import csv

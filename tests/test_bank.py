@@ -1,6 +1,8 @@
 """Step 2 tests: sessions, ownership, allowlist, approvals, idempotency, fault injection.
 
 Uses a tiny SYNTHETIC bank.db built with the real export schema.
+
+Requirements: CTL-01, CTL-02, CTL-03, CTL-04, CTL-05, SEC-02, SEC-03, DSN-03
 """
 
 import sqlite3

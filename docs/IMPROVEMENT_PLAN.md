@@ -1,5 +1,7 @@
 # Improvement plan
 
+> Requirements covered by this plan: DIM-01 to DIM-05, EVL-04, EVL-05, OPS-04, DLV-01 to DLV-04.
+
 Written on 2026-11-13 from [RETROSPECTIVE.md](RETROSPECTIVE.md). It answers four questions for each gap against Faro (1st) and LedgerLens (2nd): what to improve, how, with what, and where we can go past what they did. It has three parts:
 
 - **Part A** upgrades Lía, in this repository, in an order that pays off early. Each item names the files it touches and whether it costs API money (the user's rule: no paid run without an explicit go-ahead).

@@ -2,6 +2,9 @@
 
 Definition of done: every write interrupts BEFORE execution and is verified AFTER.
 Every other test is a failure path that must end safely.
+
+Requirements: AI-02, AI-03, AI-04, CTL-01, CTL-02, CTL-03, CTL-04, CTL-07, CTL-08,
+SCP-03, SCP-04, SCP-05, OPS-01
 """
 
 import json
